@@ -142,7 +142,7 @@ make_sentence_df2 <- function(sents){
         stringsAsFactors = FALSE
     )
     data.table::setDT(dat)
-    dat[, indx:= wc < 1, by=c('id', 'sentences', 'wc')][(indx), c('sentences', 'wc'):=NA, with=FALSE][, indx:=NULL]
+    dat[, indx:= wc < 1, by=c('id', 'sentences', 'wc')][(indx), c('sentences', 'wc'):=NA][, indx:=NULL]
 }
 
 .mgsub <- function (pattern, replacement, text.var, fixed = TRUE,
@@ -261,3 +261,10 @@ trimws <- function (x, which = c("both", "left", "right")) {
         return(mysub("[ \t\r\n]+$", x))
     mysub("[ \t\r\n]+$", mysub("^[ \t\r\n]+", x))
 }
+
+## helper to remove class
+rm_class <- function (x, remove, ...) {
+    class(x) <- class(x)[!class(x) %in% remove]
+    x
+}
+

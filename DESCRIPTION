@@ -1,6 +1,6 @@
 Package: sentimentr
 Title: Calculate Text Polarity Sentiment
-Version: 0.2.3
+Version: 0.4.0
 Authors@R: c(person("Tyler", "Rinker", email =
         "tyler.rinker@gmail.com", role = c("aut", "cre")))
 Maintainer: Tyler Rinker <tyler.rinker@gmail.com>
@@ -10,12 +10,12 @@ Depends: R (>= 3.1.0)
 Suggests: testthat
 Imports: data.table, ggplot2, graphics, grid, methods, stats, stringi,
         syuzhet, utils
-Date: 2016-08-19
-License: GPL-2
+Date: 2016-12-27
+License: MIT + file LICENSE
 LazyData: TRUE
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-08-19 04:26:35 UTC; Tyler
+Packaged: 2016-12-27 20:37:29 UTC; Tyler
 Author: Tyler Rinker [aut, cre]
 Repository: CRAN
-Date/Publication: 2016-08-19 14:02:38
+Date/Publication: 2016-12-28 17:51:58

@@ -4,6 +4,8 @@
 \alias{as_key}
 \alias{is_key}
 \alias{update_key}
+\alias{update_polarity_table}
+\alias{update_valence_shifter_table}
 \title{Create/Manipulate Hash Keys}
 \usage{
 as_key(x, comparison = sentimentr::valence_shifters_table, sentiment = TRUE,
@@ -11,6 +13,12 @@ as_key(x, comparison = sentimentr::valence_shifters_table, sentiment = TRUE,
 
 update_key(key, drop = NULL, x = NULL,
   comparison = sentimentr::valence_shifters_table, sentiment = FALSE, ...)
+
+update_polarity_table(key, drop = NULL, x = NULL,
+  comparison = sentimentr::valence_shifters_table, sentiment = FALSE, ...)
+
+update_valence_shifter_table(key, drop = NULL, x = NULL,
+  comparison = sentimentr::polarity_table, sentiment = FALSE, ...)
 
 is_key(key, sentiment = TRUE)
 }
@@ -43,6 +51,12 @@ arguments such as \code{polarity_dt} in the \code{sentiment} function.
 
 \code{update_key} - Add/remove terms to a current key.
 
+\code{update_polarity_table} - Wrapper for \code{update_key} specifically for
+updating polarity tables.
+
+\code{update_valence_shifter_table} - Wrapper for \code{update_key} 
+specifically for updating valence shifter tables.
+
 \code{is_key} - Logical check if an object is a key.
 }
 \details{
@@ -54,9 +68,10 @@ character and containing the words and the second column being numeric values
 that are positive or negative.  \code{valence_shifters_dt} takes a 2 column 
 \code{data.frame} (named x and y) with the first column being character and 
 containing the words and the second column being integer coresponding to:
-(1) negators, (2) amplifiers, and (3) de-amplifiers.  Also, note that if you
-are updating a \code{valence_shifters_dt} you need an appropriate 
-\code{comparison}; most likely, \code{comparison = sentimentr::polarity_dt}.
+(1) negators, (2) amplifiers, (3) de-amplifiers, and ``but'' conjunction (4). 
+Also, note that if you are updating a \code{valence_shifters_dt} you need an 
+appropriate \code{comparison}; most likely, 
+\code{comparison = sentimentr::polarity_dt}.
 }
 \examples{
 key <- data.frame(

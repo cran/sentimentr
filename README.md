@@ -10,8 +10,10 @@ Status](https://travis-ci.org/trinker/sentimentr.svg?branch=master)](https://tra
 [![Coverage
 Status](https://coveralls.io/repos/trinker/sentimentr/badge.svg?branch=master)](https://coveralls.io/r/trinker/sentimentr?branch=master)
 [![DOI](https://zenodo.org/badge/5398/trinker/sentimentr.svg)](https://zenodo.org/badge/latestdoi/5398/trinker/sentimentr)
-<a href="https://img.shields.io/badge/Version-0.2.3-orange.svg"><img src="https://img.shields.io/badge/Version-0.2.3-orange.svg" alt="Version"/></a>
+<a href="https://img.shields.io/badge/Version-0.4.0-orange.svg"><img src="https://img.shields.io/badge/Version-0.4.0-orange.svg" alt="Version"/></a>
 </p>
+[![](http://cranlogs.r-pkg.org/badges/sentimentr)](https://cran.r-project.org/package=sentimentr)
+
 <img src="inst/sentimentr_logo/r_sentimentr.png" width="150" alt="readability Logo">
 
 **sentimentr** is designed to quickly calculate text polarity sentiment
@@ -300,16 +302,16 @@ argument.
     (out <- with(presidential_debates_2012, sentiment_by(dialogue, list(person, time))))
 
     ##        person   time word_count        sd ave_sentiment
-    ##  1:    LEHRER time 1        765 0.3634981    0.13377765
-    ##  2:     OBAMA time 1       3598 0.4489512    0.10245522
+    ##  1:     OBAMA time 1       3598 0.4489512    0.10245522
+    ##  2:     OBAMA time 2       7476 0.3878883    0.08730120
     ##  3:     OBAMA time 3       7241 0.4408708    0.08788677
-    ##  4:     OBAMA time 2       7476 0.3878883    0.08730120
-    ##  5:    ROMNEY time 3       8302 0.3866709    0.07109706
-    ##  6: SCHIEFFER time 3       1445 0.3810998    0.06892295
+    ##  4:    ROMNEY time 1       4085 0.3669465    0.05259171
+    ##  5:    ROMNEY time 2       7534 0.3271200    0.04277505
+    ##  6:    ROMNEY time 3       8302 0.3866709    0.07109706
     ##  7:   CROWLEY time 2       1672 0.2279950    0.06725135
-    ##  8:    ROMNEY time 1       4085 0.3669465    0.05259171
-    ##  9:    ROMNEY time 2       7534 0.3271200    0.04277505
-    ## 10:  QUESTION time 2        583 0.3282897    0.02209842
+    ##  8:    LEHRER time 1        765 0.3634981    0.13377765
+    ##  9:  QUESTION time 2        583 0.3282897    0.02209842
+    ## 10: SCHIEFFER time 3       1445 0.3810998    0.06892295
 
 Plotting
 --------
@@ -434,15 +436,23 @@ Jocker's 3 dictionary approaches (Bing, NRC, Afinn), his Stanford
 wrapper (note I use my own [GitHub Stanford wrapper
 package](https://github.com/trinker/stansent) based off of Jocker's
 approach as it works more reliably on my own Windows machine), the
-[RSentiment](https://cran.r-project.org/package=RSentiment) package,
-and my own algorithm with both the default [Hu & Liu
-(2004)](https://www.aaai.org/Papers/AAAI/2004/AAAI04-119.pdf) polarity
-lexicon as well as [Baccianella, Esuli and Sebastiani's
+[RSentiment](https://cran.r-project.org/package=RSentiment) package, and
+my own algorithm with both the default Hu & Liu (2004) polarity lexicon
+as well as [Baccianella, Esuli and Sebastiani's
 (2010)](http://sentiwordnet.isti.cnr.it/) SentiWord lexicon.
 
     if (!require("pacman")) install.packages("pacman")
     pacman::p_load_gh("trinker/sentimentr", "trinker/stansent")
     pacman::p_load(syuzhet, qdap, microbenchmark, RSentiment)
+
+    package 'microbenchmark' successfully unpacked and MD5 sums checked
+
+    The downloaded binary packages are in
+        C:\Users\Tyler\AppData\Local\Temp\RtmpwJpARf\downloaded_packages
+    package 'RSentiment' successfully unpacked and MD5 sums checked
+
+    The downloaded binary packages are in
+        C:\Users\Tyler\AppData\Local\Temp\RtmpwJpARf\downloaded_packages
 
     ase <- c(
         "I haven't been sad in a long time.",
@@ -477,7 +487,7 @@ lexicon as well as [Baccianella, Esuli and Sebastiani's
     4     -0.5      0         0          0    1     3   1
     5     -0.5  -0.41     -0.56         -1    1     3   1
     6     -0.5   0.06      0.11          1    1     3   1
-    7     -0.5  -0.38     -0.05         -1    1     2   1
+    7     -0.5  -0.38     -0.05          0    1     2   1
     8        0      0     -0.14          0    0     0  -1
     9     -0.5   0.38      0.24         -1   -1    -3  -1
       sentences                                              
@@ -501,7 +511,7 @@ uses the **openNLP** package, this is a time expensive task.
 accurate in parsing sentences with a much lower computational time. We
 see that Stanford takes the longest time while **sentimentr** and
 **syuzhet** are comparable depending upon lexicon used. **RSentiment**
-is a bit slower that the fastest versions of either **sentimentr** or
+is a bit slower than the fastest versions of either **sentimentr** or
 **syuzhet**.
 
     ase_100 <- rep(ase, 100)
@@ -529,22 +539,22 @@ is a bit slower that the fastest versions of either **sentimentr** or
     )
 
     Unit: milliseconds
-                       expr        min         lq       mean     median
-                 stanford() 24014.8171 24419.2510 24589.1795 24823.6849
-        sentimentr_hu_liu()   261.0229   267.3564   271.4851   273.6899
-     sentimentr_sentiword()   980.5635   993.4797  1002.8831  1006.3959
-               RSentiment()   680.4725   681.5991   698.2822   682.7256
-             syuzhet_binn()   366.0203   375.6336   409.4138   385.2470
-              syuzhet_nrc()   805.4800   807.3414   828.6333   809.2028
-            syuzhet_afinn()   166.9616   167.6922   170.9374   168.4228
-             uq        max neval
-     24876.3607 24929.0365     3
-       276.7162   279.7426     3
-      1014.0430  1021.6900     3
-       707.1870   731.6484     3
-       431.1106   476.9743     3
-       840.2100   871.2172     3
-       172.9253   177.4277     3
+                       expr         min          lq        mean      median
+                 stanford()  27555.9649  29336.0280  30124.1588  31116.0911
+        sentimentr_hu_liu()    262.6678    267.3538    272.7080    272.0398
+     sentimentr_sentiword()   1057.2413   1087.2625   1102.4927   1117.2838
+               RSentiment() 145682.8551 148026.6238 151587.5462 150370.3924
+             syuzhet_binn()    394.5227    439.8974    462.2086    485.2720
+              syuzhet_nrc()    980.6292   1003.1331   1024.1288   1025.6370
+            syuzhet_afinn()    169.6761    173.3827    181.3841    177.0894
+              uq         max neval
+      31408.2557  31700.4203     3
+        277.7281    283.4165     3
+       1125.1184   1132.9531     3
+     154539.8918 158709.3912     3
+        496.0516    506.8311     3
+       1045.8786   1066.1202     3
+        187.2381    197.3868     3
 
 Comparing sentimentr, syuzhet, RSentiment, and Stanford
 -------------------------------------------------------

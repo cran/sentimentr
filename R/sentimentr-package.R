@@ -34,7 +34,7 @@ NULL
 #'
 #' A \pkg{data.table} dataset containing a vector of valence shifter words that
 #' can alter a polarized word's meaning and a numeric key for negators (1),
-#' amplifiers(2), and de-amplifiers (3).
+#' amplifiers(2), de-amplifiers (3) and ``but'' conjunction (4).
 #'
 #' @details
 #' Valence shifters are words that alter or intensify the meaning of the polarized
@@ -46,7 +46,8 @@ NULL
 #' sentiment of the negator altered sentence, "I seriously do not like pie.", is
 #' heightened with addition of the amplifier seriously.  Whereas de-amplifiers
 #' decrease the intensity of a polarized word as in the sentence "I barely like
-#' pie"; the word "barely" deamplifies the word like.
+#' pie"; the word "barely" deamplifies the word like.  ``but'' conjunction trump
+#' the previous clause (e.g., ``He's a nice guy but not too smart.'').
 #'
 #' @details
 #' \itemize{
@@ -57,6 +58,7 @@ NULL
 #'   Negator     \tab 1 \cr
 #'   Amplifier  \tab 2 \cr
 #'  De-amplifier  \tab 3 \cr
+#'  `but' contraction \tab 4 \cr
 #' }
 #' }
 #'
@@ -216,8 +218,7 @@ NULL
 #' @references Kotzias, D., Denil, M., De Freitas, N. & Smyth,P. (2015). From
 #' group to individual labels using deep features. Proceedings of the 21th ACM
 #' SIGKDD International Conference on Knowledge Discovery and Data Mining.
-#' 597-606. \url{http://mdenil.com/media/papers/2015-deep-multi-instance-learning.pdf} \cr\cr
-#' \url{http://archive.ics.uci.edu/ml/machine-learning-databases/00331/}
+#' 597-606. \url{http://mdenil.com/media/papers/2015-deep-multi-instance-learning.pdf} 
 NULL
 
 

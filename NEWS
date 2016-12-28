@@ -17,6 +17,25 @@ And constructed with the following guidelines:
 * Bug fixes and misc changes bumps the patch
 
 
+sentimentr 0.3.0 - 0.4.0
+----------------------------------------------------------------
+
+BUG FIXES
+
+* Missing documentation for `but' conjunctions added to the documentation.  
+  Spotted by Richard Watson (see #23).
+  
+NEW FEATURES
+
+* `extract_sentiment_terms` added to enable users to extract the sentiment terms 
+  from text as `polarity` would return in the **qdap** package.
+  
+MINOR FEATURES
+
+* `update_polarity_table` and `update_valence_shifter_table` added to abstract 
+  away thinking about the `comparison` argument to `update_key`.
+
+
 sentimentr 0.2.0 - 0.2.3
 ----------------------------------------------------------------
 
@@ -27,8 +46,6 @@ BUG FIXES
 * `highlight` parsed sentences differently than the main `sentiment` function 
   resulting in an error when `original.text` was supplied that contained a colon
   or semi-colon.  Spotted by Patrick Carlson (see #2).
-
-NEW FEATURES
 
 MINOR FEATURES
 
