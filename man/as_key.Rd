@@ -2,23 +2,23 @@
 % Please edit documentation in R/as_key.R
 \name{as_key}
 \alias{as_key}
-\alias{is_key}
 \alias{update_key}
 \alias{update_polarity_table}
 \alias{update_valence_shifter_table}
+\alias{is_key}
 \title{Create/Manipulate Hash Keys}
 \usage{
-as_key(x, comparison = sentimentr::valence_shifters_table, sentiment = TRUE,
+as_key(x, comparison = lexicon::hash_valence_shifters, sentiment = TRUE,
   ...)
 
 update_key(key, drop = NULL, x = NULL,
-  comparison = sentimentr::valence_shifters_table, sentiment = FALSE, ...)
+  comparison = lexicon::hash_valence_shifters, sentiment = FALSE, ...)
 
 update_polarity_table(key, drop = NULL, x = NULL,
-  comparison = sentimentr::valence_shifters_table, sentiment = FALSE, ...)
+  comparison = lexicon::hash_valence_shifters, sentiment = FALSE, ...)
 
 update_valence_shifter_table(key, drop = NULL, x = NULL,
-  comparison = sentimentr::polarity_table, sentiment = FALSE, ...)
+  comparison = lexicon::hash_sentiment_jockers, sentiment = FALSE, ...)
 
 is_key(key, sentiment = TRUE)
 }
@@ -67,11 +67,11 @@ keys used in the \pkg{sentimentr} package.  The \code{polarity_dt} takes a
 character and containing the words and the second column being numeric values
 that are positive or negative.  \code{valence_shifters_dt} takes a 2 column 
 \code{data.frame} (named x and y) with the first column being character and 
-containing the words and the second column being integer coresponding to:
-(1) negators, (2) amplifiers, (3) de-amplifiers, and ``but'' conjunction (4). 
-Also, note that if you are updating a \code{valence_shifters_dt} you need an 
-appropriate \code{comparison}; most likely, 
-\code{comparison = sentimentr::polarity_dt}.
+containing the words and the second column being integer corresponding to:
+(1) negators, (2) amplifiers, (3) de-amplifiers, and (4) dversative 
+conjunctions (i.e., 'but', 'however', and 'although').  Also, note that if 
+you are updating a \code{valence_shifters_dt} you need an appropriate 
+\code{comparison}; most likely, \code{comparison = sentimentr::polarity_dt}.
 }
 \examples{
 key <- data.frame(
@@ -94,6 +94,17 @@ update_key(mykey, x = data.frame(x = c("dog", "cat"), y = c(1, -1)))
 ## Add terms & drop to/from a key
 update_key(mykey, drop = c("f", "h"), x = data.frame(x = c("dog", "cat"), y = c(1, -1)))
 
+## Explicity key type (wrapper for `update_key` for sentiment table.
+## See `update_valence_shifter_table` a corresponding valence shifter updater.
+library(lexicon)
+updated_hash_sentiment <- sentimentr:::update_polarity_table(lexicon::hash_sentiment_huliu,
+    x = data.frame(
+        words = c('frickin', 'hairy'),
+        polarity = c(-1, -1),
+        stringsAsFactors = FALSE
+    )
+)
+
 ## Checking if you have a key
 is_key(mykey)
 is_key(key)
@@ -105,6 +116,7 @@ is_key(update_key(mykey, drop = c("f", "h")))
 library(syuzhet)
 as_key(syuzhet:::bing)
 as_key(syuzhet:::afinn)
+as_key(syuzhet:::syuzhet_dict)
 nrc <- data.frame(
     words = rownames(syuzhet:::nrc),
     polarity = syuzhet:::nrc[, "positive"] - syuzhet:::nrc[, "negative"],
@@ -143,4 +155,3 @@ geninq_pol \%>\% plot()
 \keyword{hash}
 \keyword{key}
 \keyword{lookup}
-

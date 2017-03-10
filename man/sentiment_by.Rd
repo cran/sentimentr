@@ -4,15 +4,27 @@
 \alias{sentiment_by}
 \title{Polarity Score (Sentiment Analysis) By Groups}
 \usage{
-sentiment_by(text.var, by = NULL, group.names, ...)
+sentiment_by(text.var, by = NULL,
+  averaging.function = average_downweighted_zero, group.names, ...)
 }
 \arguments{
-\item{text.var}{The text variable.}
+\item{text.var}{The text variable.  Also takes a \code{sentimentr} or
+\code{sentiment_by} object.}
 
 \item{by}{The grouping variable(s).  Default \code{NULL} uses the original
 row/element indices; if you used a column of 12 rows for \code{text.var}
 these 12 rows will be used as the grouping variable.  Also takes a single
 grouping variable or a list of 1 or more grouping variables.}
+
+\item{averaging.function}{A function for performing the group by averaging.
+The default, \code{\link[sentimentr]{average_downweighted_zero}}, downweights 
+zero values in the averaging.  Note that the function must handle 
+\code{NA}s.  The \pkg{sentimentr} functions 
+\code{average_weighted_mixed_sentiment} and \code{average_mean} are also 
+available.  The former upweights negative when the analysts suspects the 
+speaker is likely to surround negatives with positives (mixed) as a polite 
+social convention but still the affective state is negative.  The later is a 
+standard mean average.}
 
 \item{group.names}{A vector of names that corresponds to group.  Generally
 for internal use.}
@@ -30,12 +42,15 @@ Returns a \pkg{data.table} with grouping variables plus:
 }
 }
 \description{
-Approximate the sentiment (polarity) of text by grouping variable(s).
+Approximate the sentiment (polarity) of text by grouping variable(s).  For a
+full description of the sentiment detection algorithm see 
+\code{\link[sentimentr]{sentiment}}.  See \code{\link[sentimentr]{sentiment}}
+for more details about the algorithm, the sentiment/valence shifter keys
+that can be passed into the function, and other arguments that can be passed.
 }
 \seealso{
-Other sentiment.functions: \code{\link{sentiment}}
+Other sentiment functions: \code{\link{sentiment}}
 }
 \keyword{group}
 \keyword{polarity,}
 \keyword{sentiment,}
-

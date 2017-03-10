@@ -10,10 +10,9 @@ Status](https://travis-ci.org/trinker/sentimentr.svg?branch=master)](https://tra
 [![Coverage
 Status](https://coveralls.io/repos/trinker/sentimentr/badge.svg?branch=master)](https://coveralls.io/r/trinker/sentimentr?branch=master)
 [![DOI](https://zenodo.org/badge/5398/trinker/sentimentr.svg)](https://zenodo.org/badge/latestdoi/5398/trinker/sentimentr)
-<a href="https://img.shields.io/badge/Version-0.4.0-orange.svg"><img src="https://img.shields.io/badge/Version-0.4.0-orange.svg" alt="Version"/></a>
-</p>
 [![](http://cranlogs.r-pkg.org/badges/sentimentr)](https://cran.r-project.org/package=sentimentr)
-
+<a href="https://img.shields.io/badge/Version-1.0.0-orange.svg"><img src="https://img.shields.io/badge/Version-1.0.0-orange.svg" alt="Version"/></a>
+</p>
 <img src="inst/sentimentr_logo/r_sentimentr.png" width="150" alt="readability Logo">
 
 **sentimentr** is designed to quickly calculate text polarity sentiment
@@ -27,28 +26,26 @@ dictionary lookup approach that tries to incorporate weighting for
 valence shifters (negation and amplifiers/deamplifiers). Matthew
 Jocker's created the
 [**syuzhet**](http://www.matthewjockers.net/2015/02/02/syuzhet/) package
-that utilizes dictionary lookups for the Bing, NRC, and Afinn methods.
-He also utilizes a wrapper for the [Stanford
-coreNLP](http://nlp.stanford.edu/software/corenlp.shtml) which uses much
-more sophisticated analysis. Jocker's dictionary methods are fast but
-are more prone to error in the case of valence shifters. Jocker's
-[addressed these
+that utilizes dictionary lookups for the Bing, NRC, and Afinn methods as
+well as a custom dictionary. He also utilizes a wrapper for the
+[Stanford coreNLP](http://nlp.stanford.edu/software/corenlp.shtml) which
+uses much more sophisticated analysis. Jocker's dictionary methods are
+fast but are more prone to error in the case of valence shifters.
+Jocker's [addressed these
 critiques](http://www.matthewjockers.net/2015/03/04/some-thoughts-on-annies-thoughts-about-syuzhet/)
 explaining that the method is good with regard to analyzing general
 sentiment in a piece of literature. He points to the accuracy of the
 Stanford detection as well. In my own work I need better accuracy than a
 simple dictionary lookup; something that considers valence shifters yet
 optimizes speed which the Stanford's parser does not. This leads to a
-trade off of speed vs. accuracy. The equation below describes the
-dictionary method of **sentimentr** that may give better results than a
-dictionary approach that does not consider valence shifters but will
-likely still be less accurate than Stanford's approach. Simply,
-**sentimentr** attempts to balance accuracy and speed.
+trade off of speed vs. accuracy. Simply, **sentimentr** attempts to
+balance accuracy and speed.
 
 
 Table of Contents
 ============
 
+-   [Why sentimentr](#why-sentimentr)
 -   [Functions](#functions)
 -   [The Equation](#the-equation)
 -   [Installation](#installation)
@@ -58,72 +55,195 @@ Table of Contents
         -   [Plotting at the Sentence Level](#plotting-at-the-sentence-level)
     -   [Making and Updating Dictionaries](#making-and-updating-dictionaries)
     -   [Annie Swafford's Examples](#annie-swaffords-examples)
-    -   [Comparing sentimentr, syuzhet, RSentiment, and Stanford](#comparing-sentimentr-syuzhet-rsentiment-and-stanford)
+    -   [Comparing sentimentr, syuzhet, meanr, and Stanford](#comparing-sentimentr-syuzhet-meanr-and-stanford)
     -   [Text Highlighting](#text-highlighting)
 -   [Contact](#contact)
 
-Functions
+Why sentimentr
 ============
 
 
-There are two main functions (top 2 in table below) in **sentimentr**
-with several helper functions summarized in the table below:
+***So what does*** **sentimentr** ***do that other packages don't and
+why does it matter?***
 
-<table style="width:104%;">
-<colgroup>
-<col width="26%" />
-<col width="77%" />
-</colgroup>
+> **sentimentr** attempts to take into account valence shifters (i.e.,
+> negators, amplifiers, de-amplifiers, and adversative conjunctions)
+> while maintaining speed. Simply put, **sentimentr** is an augmented
+> dictionary lookup. The next questions address why it matters.
+
+***So what are these valence shifters?***
+
+> A *negator* flips the sign of a polarized word (e.g., "I do ***not***
+> like it."). See `lexicon::hash_valence_shifters[y==1]` for examples.
+> An *amplifier* increases the impact of a polarized word (e.g., "I
+> ***really*** like it."). See `lexicon::hash_valence_shifters[y==2]`
+> for examples. A *de-amplifier* reduces the impact of a polarized word
+> (e.g., "I ***hardly*** like it."). See
+> `lexicon::hash_valence_shifters[y==3]` for examples. An *adversative
+> conjunction* overrules the previous clause containing a polarized word
+> (e.g., "I like it ***but*** it's not worth it."). See
+> `lexicon::hash_valence_shifters[y==4]` for examples.
+
+***Do valence shifters really matter?***
+
+> Well valence shifters affect the polarized words. In the case of
+> *negators* and *adversative conjunctions* the entire sentiment of the
+> clause may be reversed or overruled. So if valence shifters occur
+> fairly frequently a simple dictionary lookup may not be modeling the
+> sentiment appropriately. You may be wondering how frequently these
+> valence shifters co-occur with polarized words, potentially changing,
+> or even reversing and overruling the clause's sentiment. The table
+> below shows the rate of sentence level co-occurrence of valence
+> shifters with polarized words across a few types of texts.
+
+<table>
 <thead>
 <tr class="header">
-<th align="left">Function</th>
-<th align="left">Description</th>
+<th align="left">Text</th>
+<th align="right">Negator</th>
+<th align="right">Amplifier</th>
+<th align="right">Deamplifier</th>
+<th align="right">Adversative</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left"><code>sentiment</code></td>
-<td align="left">Sentiment at the sentence level</td>
+<td align="left">Cannon reviews</td>
+<td align="right">21%</td>
+<td align="right">23%</td>
+<td align="right">8%</td>
+<td align="right">12%</td>
 </tr>
 <tr class="even">
-<td align="left"><code>sentiment_by</code></td>
-<td align="left">Aggregated sentiment by group(s)</td>
+<td align="left">2012 presidential debate</td>
+<td align="right">23%</td>
+<td align="right">18%</td>
+<td align="right">1%</td>
+<td align="right">11%</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>uncombine</code></td>
-<td align="left">Extract sentence level sentiment from <code>sentiment_by</code></td>
+<td align="left">Trump speeches</td>
+<td align="right">12%</td>
+<td align="right">14%</td>
+<td align="right">3%</td>
+<td align="right">10%</td>
 </tr>
 <tr class="even">
-<td align="left"><code>get_sentences</code></td>
-<td align="left">Regex based string to sentence parser (or get sentences from <code>sentiment</code>/<code>sentiment_by</code>)</td>
+<td align="left">Trump tweets</td>
+<td align="right">19%</td>
+<td align="right">18%</td>
+<td align="right">4%</td>
+<td align="right">4%</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>replace_emoticon</code></td>
-<td align="left">Replace emoticons with word equivalent</td>
+<td align="left">Dylan songs</td>
+<td align="right">4%</td>
+<td align="right">10%</td>
+<td align="right">0%</td>
+<td align="right">4%</td>
 </tr>
 <tr class="even">
-<td align="left"><code>replace_grade</code></td>
-<td align="left">Replace gradess (e.g., &quot;A+&quot;) with word equivalent</td>
+<td align="left">Austen books</td>
+<td align="right">21%</td>
+<td align="right">18%</td>
+<td align="right">6%</td>
+<td align="right">11%</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>replace_rating</code></td>
-<td align="left">Replace ratings (e.g., &quot;10 out of 10&quot;, &quot;3 stars&quot;) with word equivalent</td>
+<td align="left">Hamlet</td>
+<td align="right">26%</td>
+<td align="right">17%</td>
+<td align="right">2%</td>
+<td align="right">16%</td>
+</tr>
+</tbody>
+</table>
+
+Indeed *negators* appear ~20% of the time a polarized word appears in a
+sentence. Conversely, *adversative conjunctions* appear with polarized
+words ~10% of the time. Not accounting for the valence shifters could
+significantly impact the modeling of the text sentiment.
+
+The [script to replicate the frequency
+analysis](https://raw.githubusercontent.com/trinker/sentimentr/master/inst/the_case_for_sentimentr/valence_shifter_cooccurrence_rate.R),
+shown in the table above, can be accessed via:
+
+    val_shift_freq <- system.file("the_case_for_sentimentr/valence_shifter_cooccurrence_rate.R", package = "sentimentr")
+    file.copy(val_shift_freq, getwd())
+
+Functions
+=========
+
+There are two main functions (top 2 in table below) in **sentimentr**
+with several helper functions summarized in the table below:
+
+<table style="width:100%;">
+<colgroup>
+<col width="25%" />
+<col width="74%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sentiment</code></td>
+<td>Sentiment at the sentence level</td>
 </tr>
 <tr class="even">
-<td align="left"><code>as_key</code></td>
-<td align="left">Coerce a <code>data.frame</code> lexicon to a polarity hash key</td>
+<td><code>sentiment_by</code></td>
+<td>Aggregated sentiment by group(s)</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>is_key</code></td>
-<td align="left">Check if an object is a hash key</td>
+<td><code>uncombine</code></td>
+<td>Extract sentence level sentiment from <code>sentiment_by</code></td>
 </tr>
 <tr class="even">
-<td align="left"><code>update_key</code></td>
-<td align="left">Add/remove terms to/from a hash key</td>
+<td><code>get_sentences</code></td>
+<td>Regex based string to sentence parser (or get sentences from <code>sentiment</code>/<code>sentiment_by</code>)</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>highlight</code></td>
-<td align="left">Highlight positive/negative sentences as an HTML document</td>
+<td><code>replace_emoticon</code></td>
+<td>Replace emoticons with word equivalent</td>
+</tr>
+<tr class="even">
+<td><code>replace_grade</code></td>
+<td>Replace grades (e.g., &quot;A+&quot;) with word equivalent</td>
+</tr>
+<tr class="odd">
+<td><code>replace_rating</code></td>
+<td>Replace ratings (e.g., &quot;10 out of 10&quot;, &quot;3 stars&quot;) with word equivalent</td>
+</tr>
+<tr class="even">
+<td><code>as_key</code></td>
+<td>Coerce a <code>data.frame</code> lexicon to a polarity hash key</td>
+</tr>
+<tr class="odd">
+<td><code>is_key</code></td>
+<td>Check if an object is a hash key</td>
+</tr>
+<tr class="even">
+<td><code>update_key</code></td>
+<td>Add/remove terms to/from a hash key</td>
+</tr>
+<tr class="odd">
+<td><code>highlight</code></td>
+<td>Highlight positive/negative sentences as an HTML document</td>
+</tr>
+<tr class="even">
+<td><code>general_rescale</code></td>
+<td>Generalized rescaling function to rescale sentiment scoring</td>
+</tr>
+<tr class="odd">
+<td><code>sentiment_attribute</code></td>
+<td>Extract the sentiment based attributes from a text</td>
+</tr>
+<tr class="even">
+<td><code>validate_sentiment</code></td>
+<td>Validate sentiment score sign against known results</td>
 </tr>
 </tbody>
 </table>
@@ -131,10 +251,13 @@ with several helper functions summarized in the table below:
 The Equation
 ============
 
-The equation used by the algorithm to assign value to polarity of each
-sentence fist utilizes the sentiment dictionary (Hu and Liu,
-[2004](http://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf))
-to tag polarized words. Each paragraph
+The equation below describes the augmented dictionary method of
+**sentimentr** that may give better results than a simple lookup
+dictionary approach that does not consider valence shifters. The
+equation used by the algorithm to assign value to polarity of each
+sentence fist utilizes the a sentiment dictionary (e.g., Jockers,
+[(2017)](https://github.com/mjockers/syuzhet)) to tag polarized words.
+Each paragraph
 (*p*<sub>*i*</sub> = {*s*<sub>1</sub>, *s*<sub>2</sub>, ..., *s*<sub>*n*</sub>})
 composed of sentences, is broken into element sentences
 (*s*<sub>*i*</sub>, *j* = {*w*<sub>1</sub>, *w*<sub>2</sub>, ..., *w*<sub>*n*</sub>})
@@ -151,8 +274,11 @@ For example it may be a cell level response in a questionnaire composed
 of sentences.
 
 The words in each sentence (*w*<sub>*i*, *j*, *k*</sub>) are searched
-and compared to a modified version of Hu, M., & Liu, B.'s (2004)
-dictionary of polarized words. Positive
+and compared to a dictionary of polarized words (e.g., a slightly
+modified version of Jocker's (2017) dictionary in the
+[**lexicon**](https://cran.r-project.org/package=lexicon) package
+originally exported by the
+[**syuzhet**](https://github.com/mjockers/syuzhet) package). Positive
 (*w*<sub>*i*, *j*, *k*</sub><sup>+</sup>) and negative
 (*w*<sub>*i*, *j*, *k*</sub><sup>−</sup>) words are tagged with a +1 and
 −1 respectively (or other positive/negative weighting if the user
@@ -201,29 +327,32 @@ number of negators (*w*<sub>*i*, *j*, *k*</sub><sup>*n*</sup>) plus 2.
 Simply, this is a result of a belief that two negatives equal a
 positive, 3 negatives a negative, and so on.
 
-The "but" conjunctions (i.e., 'but', 'however', and 'although') also
-weight the context cluster. A but conjunction before the polarized word
-(*w*<sub>*b**u**t* *c**o**n**j**u**n**c**t**i**o**n*</sub>, ..., *w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>)
+The adversative conjunctions (i.e., 'but', 'however', and 'although')
+also weight the context cluster. An adversative conjunction before the
+polarized word
+(*w*<sub>*a**d**v**e**r**s**a**t**i**v**e* *c**o**n**j**u**n**c**t**i**o**n*</sub>, ..., *w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>)
 up-weights the cluster by 1 +
-*z*<sub>2</sub> \* {|*w*<sub>*b**u**t* *c**o**n**j**u**n**c**t**i**o**n*</sub>|,...,*w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>}
+*z*<sub>2</sub> \* {|*w*<sub>*a**d**v**e**r**s**a**t**i**v**e* *c**o**n**j**u**n**c**t**i**o**n*</sub>|,...,*w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>}
 (.85 is the default weight (*z*<sub>2</sub>) where
-|*w*<sub>*b**u**t* *c**o**n**j**u**n**c**t**i**o**n*</sub>| are the
-number of but conjunctions before the polarized word). A but conjunction
-after the polarized word down-weights the cluster by 1 +
-{*w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>, ..., |*w*<sub>*b**u**t* *c**o**n**j**u**n**c**t**i**o**n*</sub>|\* − 1}\**z*<sub>2</sub>.
-This corresponds to the belief that a but makes the next clause of
-greater values while lowering the value placed on the prior clause.
+|*w*<sub>*a**d**v**e**r**s**a**t**i**v**e* *c**o**n**j**u**n**c**t**i**o**n*</sub>|
+are the number of adversative conjunctions before the polarized word). A
+adversative conjunction after the polarized word down-weights the
+cluster by 1 +
+{*w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>, ..., |*w*<sub>*a**d**v**e**r**s**a**t**i**v**e* *c**o**n**j**u**n**c**t**i**o**n*</sub>|\* − 1}\**z*<sub>2</sub>.
+This corresponds to the belief that an adversative conjunction makes the
+next clause of greater values while lowering the value placed on the
+prior clause.
 
 The researcher may provide a weight (*z*) to be utilized with
 amplifiers/de-amplifiers (default is .8; de-amplifier weight is
 constrained to −1 lower bound). Last, these weighted context clusters
 (*c*<sub>*i*, *j*, *l*</sub>) are summed (*c*′<sub>*i*, *j*</sub>) and
 divided by the square root of the word count
-(&radic;*w*<sub>*i*, *j**n*</sub>) yielding an unbounded polarity score
+(√*w*<sub>*i*, *j**n*</sub>) yielding an unbounded polarity score
 (*δ*<sub>*i*, *j*</sub>) for each sentence.
 
 *δ*<sub>*i**j*</sub> =
-<em>c</em>'<sub>*i**j*</sub>/&radic;*w*<sub>*i**j**n*</sub>
+<em>c</em>'<sub>*i**j*</sub>/√*w*<sub>*i**j**n*</sub>
 
 Where:
 
@@ -237,15 +366,19 @@ Where:
 
 *w*<sub>*b*</sub> = 1 + *z*<sub>2</sub> \* *w*<sub>*b*′</sub>
 
-*w*<sub>*b*′</sub> = ∑(|*w*<sub>*b**u**t* *c**o**n**j**u**n**c**t**i**o**n*</sub>|,...,*w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>, *w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>, ..., |*w*<sub>*b**u**t* *c**o**n**j**u**n**c**t**i**o**n*</sub>|\* − 1)
+*w*<sub>*b*′</sub> = ∑(|*w*<sub>*a**d**v**e**r**s**a**t**i**v**e* *c**o**n**j**u**n**c**t**i**o**n*</sub>|,...,*w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>, *w*<sub>*i*, *j*, *k*</sub><sup>*p*</sup>, ..., |*w*<sub>*a**d**v**e**r**s**a**t**i**v**e* *c**o**n**j**u**n**c**t**i**o**n*</sub>|\* − 1)
 
 *w*<sub>*n**e**g*</sub> = (∑*w*<sub>*i*, *j*, *k*</sub><sup>*n*</sup> )
 mod 2
 
 To get the mean of all sentences (*s*<sub>*i*, *j*</sub>) within a
-paragraph (*p*<sub>*i*</sub>) simply take the average sentiment score
-*p*<sub>*i*, *δ*<sub>*i*, *j*</sub></sub> = 1/n ⋅ ∑
-*δ*<sub>*i*, *j*</sub>.
+paragraph/turn of talk (*p*<sub>*i*</sub>) simply take the average
+sentiment score *p*<sub>*i*, *δ*<sub>*i*, *j*</sub></sub> = 1/n ⋅ ∑
+*δ*<sub>*i*, *j*</sub> or use an available weighted average (the default
+`average_weighted_mixed_sentiment` which upweights the negative values
+in a vector while also downweighting the zeros in a vector or
+`average_downweighted_zero` which simply downweights the zero polarity
+scores).
 
 Installation
 ============
@@ -259,7 +392,7 @@ and run `R CMD INSTALL` on it, or use the **pacman** package to install
 the development version:
 
     if (!require("pacman")) install.packages("pacman")
-    pacman::p_load_gh("trinker/sentimentr")
+    pacman::p_load_current_gh("trinker/lexicon", "trinker/sentimentr")
 
 Examples
 ========
@@ -275,10 +408,10 @@ Examples
     sentiment(mytext)
 
     ##    element_id sentence_id word_count  sentiment
-    ## 1:          1           1          4  0.5000000
-    ## 2:          1           2          6 -2.6781088
-    ## 3:          2           1          5  0.4472136
-    ## 4:          3           1          5  0.8049845
+    ## 1:          1           1          4  0.2500000
+    ## 2:          1           2          6 -2.0085816
+    ## 3:          2           1          5  0.5813777
+    ## 4:          3           1          5  0.4024922
     ## 5:          3           2          4  0.0000000
 
 To aggregate by element (column cell or vector element) use
@@ -292,9 +425,9 @@ To aggregate by element (column cell or vector element) use
     sentiment_by(mytext)
 
     ##    element_id word_count       sd ave_sentiment
-    ## 1:          1         10 2.247262    -1.0890544
-    ## 2:          2          5       NA     0.4472136
-    ## 3:          3          9 0.569210     0.4024922
+    ## 1:          1         10 1.597058    -0.8792908
+    ## 2:          2          5       NA     0.5813777
+    ## 3:          3          9 0.284605     0.2196345
 
 To aggregate by grouping variables use `sentiment_by` using the `by`
 argument.
@@ -302,16 +435,16 @@ argument.
     (out <- with(presidential_debates_2012, sentiment_by(dialogue, list(person, time))))
 
     ##        person   time word_count        sd ave_sentiment
-    ##  1:     OBAMA time 1       3598 0.4489512    0.10245522
-    ##  2:     OBAMA time 2       7476 0.3878883    0.08730120
-    ##  3:     OBAMA time 3       7241 0.4408708    0.08788677
-    ##  4:    ROMNEY time 1       4085 0.3669465    0.05259171
-    ##  5:    ROMNEY time 2       7534 0.3271200    0.04277505
-    ##  6:    ROMNEY time 3       8302 0.3866709    0.07109706
-    ##  7:   CROWLEY time 2       1672 0.2279950    0.06725135
-    ##  8:    LEHRER time 1        765 0.3634981    0.13377765
-    ##  9:  QUESTION time 2        583 0.3282897    0.02209842
-    ## 10: SCHIEFFER time 3       1445 0.3810998    0.06892295
+    ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
+    ##  2:     OBAMA time 2       7476 0.2399589    0.11663216
+    ##  3:     OBAMA time 3       7241 0.2614870    0.11842952
+    ##  4:    ROMNEY time 1       4085 0.2505313    0.12462353
+    ##  5:    ROMNEY time 2       7534 0.2382667    0.08540709
+    ##  6:    ROMNEY time 3       8302 0.2846332    0.10652350
+    ##  7:   CROWLEY time 2       1672 0.1878174    0.17977897
+    ##  8:    LEHRER time 1        765 0.2847680    0.18338771
+    ##  9:  QUESTION time 2        583 0.2076347    0.06625726
+    ## 10: SCHIEFFER time 3       1445 0.2471048    0.08780297
 
 Plotting
 --------
@@ -320,7 +453,7 @@ Plotting
 
     plot(out)
 
-![](inst/figure/unnamed-chunk-7-1.png)
+![](inst/figure/unnamed-chunk-9-1.png)
 
 ### Plotting at the Sentence Level
 
@@ -333,7 +466,7 @@ overall shape of the text's sentiment. The user can see
 
     plot(uncombine(out))
 
-![](inst/figure/unnamed-chunk-8-1.png)
+![](inst/figure/unnamed-chunk-10-1.png)
 
 Making and Updating Dictionaries
 --------------------------------
@@ -341,9 +474,10 @@ Making and Updating Dictionaries
 It is pretty straight forward to make or update a new dictionary
 (polarity or valence shifter). To create a key from scratch the user
 needs to create a 2 column `data.frame`, with words on the left and
-values on the right (see `?polarity_table` & `?valence_shifters_table`
-for what the values mean). Note that the words need to be lower cased.
-Here I show an example `data.frame` ready for key conversion:
+values on the right (see `?lexicon::hash_sentiment_huliu` &
+`?lexicon::hash_valence_shifters` for what the values mean). Note that
+the words need to be lower cased. Here I show an example `data.frame`
+ready for key conversion:
 
     set.seed(10)
     key <- data.frame(
@@ -432,27 +566,23 @@ Annie Swafford's Examples
 Swafford](https://annieswafford.wordpress.com/2015/03/02/syuzhet/)
 critiqued Jocker's approach to sentiment and gave the following examples
 of sentences (`ase` for Annie Swafford example). Here I test each of
-Jocker's 3 dictionary approaches (Bing, NRC, Afinn), his Stanford
-wrapper (note I use my own [GitHub Stanford wrapper
+Jocker's 4 dictionary approaches (syuzhet, Bing, NRC, Afinn), his
+Stanford wrapper (note I use my own [GitHub Stanford wrapper
 package](https://github.com/trinker/stansent) based off of Jocker's
 approach as it works more reliably on my own Windows machine), the
-[RSentiment](https://cran.r-project.org/package=RSentiment) package, and
-my own algorithm with both the default Hu & Liu (2004) polarity lexicon
-as well as [Baccianella, Esuli and Sebastiani's
-(2010)](http://sentiwordnet.isti.cnr.it/) SentiWord lexicon.
+[RSentiment](https://cran.r-project.org/package=RSentiment) package, the
+lookup based
+[SentimentAnalysis](https://github.com/sfeuerriegel/SentimentAnalysis)
+package, the [meanr](https://github.com/wrathematics/meanr) package
+(written in C level code), and my own algorithm with default Jockers
+(2017) polarity lexicon as well as Hu & Liu (2004) and [Baccianella,
+Esuli and Sebastiani's (2010)](http://sentiwordnet.isti.cnr.it/)
+SentiWord lexicons available from the
+[**lexicon**](https://github.com/trinker/lexicon) package.
 
     if (!require("pacman")) install.packages("pacman")
-    pacman::p_load_gh("trinker/sentimentr", "trinker/stansent")
+    pacman::p_load_gh("trinker/sentimentr", "trinker/stansent", "sfeuerriegel/SentimentAnalysis", "wrathematics/meanr")
     pacman::p_load(syuzhet, qdap, microbenchmark, RSentiment)
-
-    package 'microbenchmark' successfully unpacked and MD5 sums checked
-
-    The downloaded binary packages are in
-        C:\Users\Tyler\AppData\Local\Temp\RtmpwJpARf\downloaded_packages
-    package 'RSentiment' successfully unpacked and MD5 sums checked
-
-    The downloaded binary packages are in
-        C:\Users\Tyler\AppData\Local\Temp\RtmpwJpARf\downloaded_packages
 
     ase <- c(
         "I haven't been sad in a long time.",
@@ -466,30 +596,45 @@ as well as [Baccianella, Esuli and Sebastiani's
         "I don't feel so bad after all!"
     )
 
-    syuzhet <- setNames(as.data.frame(lapply(c("bing", "afinn", "nrc"),
-        function(x) get_sentiment(ase, method=x))), c("bing", "afinn", "nrc"))
+    syuzhet <- setNames(as.data.frame(lapply(c("syuzhet", "bing", "afinn", "nrc"),
+        function(x) get_sentiment(ase, method=x))), c("syuzhet", "bing", "afinn", "nrc"))
 
+    SentimentAnalysis <- apply(analyzeSentiment(ase)[c('SentimentGI', 'SentimentLM', 'SentimentQDAP') ], 2, round, 2)
+    colnames(SentimentAnalysis) <- gsub('^Sentiment', "SA_", colnames(SentimentAnalysis))
 
     left_just(data.frame(
         stanford = sentiment_stanford(ase)[["sentiment"]],
-        hu_liu = round(sentiment(ase, question.weight = 0)[["sentiment"]], 2),
-        sentiword = round(sentiment(ase, sentiword, question.weight = 0)[["sentiment"]], 2),    
+        sentimentr_jockers = round(sentiment(ase, question.weight = 0)[["sentiment"]], 2),
+        sentimentr_huliu = round(sentiment(ase, lexicon::hash_sentiment_huliu, question.weight = 0)[["sentiment"]], 2),    
+        sentimentr_sentiword = round(sentiment(ase, lexicon::hash_sentiment_sentiword, question.weight = 0)[["sentiment"]], 2),    
         RSentiment = calculate_score(ase), 
+        SentimentAnalysis,
+        meanr = score(ase)[['score']],
         syuzhet,
         sentences = ase,
         stringsAsFactors = FALSE
     ), "sentences")
 
-      stanford hu_liu sentiword RSentiment bing afinn nrc
-    1     -0.5   0.35      0.18         -1   -1    -2   0
-    2        1    0.8      0.65          1    1     3   1
-    3      0.5    0.5      0.32          1    1     3   1
-    4     -0.5      0         0          0    1     3   1
-    5     -0.5  -0.41     -0.56         -1    1     3   1
-    6     -0.5   0.06      0.11          1    1     3   1
-    7     -0.5  -0.38     -0.05          0    1     2   1
-    8        0      0     -0.14          0    0     0  -1
-    9     -0.5   0.38      0.24         -1   -1    -3  -1
+      stanford sentimentr_jockers sentimentr_huliu sentimentr_sentiword
+    1     -0.5               0.18             0.35                 0.18
+    2        1                0.6              0.8                 0.65
+    3      0.5               0.38              0.5                 0.32
+    4     -0.5                  0                0                    0
+    5     -0.5              -0.31            -0.41                -0.56
+    6     -0.5               0.04             0.06                 0.11
+    7     -0.5              -0.28            -0.38                -0.05
+    8        0              -0.14                0                -0.14
+    9     -0.5               0.28             0.38                 0.24
+      RSentiment SA_GI SA_LM SA_QDAP meanr syuzhet bing afinn nrc
+    1         -1 -0.25     0   -0.25    -1    -0.5   -1    -2   0
+    2          1  0.33  0.33       0     1    0.75    1     3   1
+    3          1   0.5   0.5     0.5     1    0.75    1     3   1
+    4          0     0  0.25    0.25     1    0.75    1     3   1
+    5         -1     1     1       1     1    0.75    1     3   1
+    6          1  0.17  0.17    0.33     1    0.75    1     3   1
+    7          0   0.5   0.5     0.5     1    0.75    1     2   1
+    8          0     0     0       0     0   -0.25    0     0  -1
+    9         -1 -0.33 -0.33   -0.33    -1   -0.75   -1    -3  -1
       sentences                                              
     1 I haven't been sad in a long time.                     
     2 I am extremely happy today.                            
@@ -509,67 +654,88 @@ into sentence parts **syuzhet** has the `get_sentences` function that
 uses the **openNLP** package, this is a time expensive task.
 **sentimentr** uses a much faster regex based approach that is nearly as
 accurate in parsing sentences with a much lower computational time. We
-see that Stanford takes the longest time while **sentimentr** and
-**syuzhet** are comparable depending upon lexicon used. **RSentiment**
-is a bit slower than the fastest versions of either **sentimentr** or
-**syuzhet**.
+see that **RSentiment** and Stanford take the longest time while
+**sentimentr** and **syuzhet** are comparable depending upon lexicon
+used. **meanr** is lighting fast. **SentimentAnalysis** is a bit slower
+than other methods but is returning 3 scores from 3 different
+dictionaries.
 
     ase_100 <- rep(ase, 100)
 
     stanford <- function() {sentiment_stanford(ase_100)}
 
-    sentimentr_hu_liu <- function() sentiment(ase_100)
-    sentimentr_sentiword <- function() sentiment(ase_100, sentiword) 
+    sentimentr_jockers <- function() sentiment(ase_100, lexicon::hash_sentiment_jockers)
+    sentimentr_huliu <- function() sentiment(ase_100, lexicon::hash_sentiment_huliu)
+    sentimentr_sentiword <- function() sentiment(ase_100, lexicon::hash_sentiment_sentiword) 
         
     RSentiment <- function() calculate_score(ase_100) 
         
+    SentimentAnalysis <- function() analyzeSentiment(ase_100)
+
+    meanr <- function() score(ase_100)
+
+    syuzhet_syuzhet <- function() get_sentiment(ase_100, method="syuzhet")
     syuzhet_binn <- function() get_sentiment(ase_100, method="bing")
     syuzhet_nrc <- function() get_sentiment(ase_100, method="nrc")
     syuzhet_afinn <- function() get_sentiment(ase_100, method="afinn")
          
     microbenchmark(
         stanford(),
-        sentimentr_hu_liu(),
+        sentimentr_jockers(),
+        sentimentr_huliu(),
         sentimentr_sentiword(),
         RSentiment(), 
+        SentimentAnalysis(),
+        syuzhet_syuzhet(),
         syuzhet_binn(), 
         syuzhet_nrc(),
         syuzhet_afinn(),
+        meanr(),
         times = 3
     )
 
-    Unit: milliseconds
-                       expr         min          lq        mean      median
-                 stanford()  27555.9649  29336.0280  30124.1588  31116.0911
-        sentimentr_hu_liu()    262.6678    267.3538    272.7080    272.0398
-     sentimentr_sentiword()   1057.2413   1087.2625   1102.4927   1117.2838
-               RSentiment() 145682.8551 148026.6238 151587.5462 150370.3924
-             syuzhet_binn()    394.5227    439.8974    462.2086    485.2720
-              syuzhet_nrc()    980.6292   1003.1331   1024.1288   1025.6370
-            syuzhet_afinn()    169.6761    173.3827    181.3841    177.0894
-              uq         max neval
-      31408.2557  31700.4203     3
-        277.7281    283.4165     3
-       1125.1184   1132.9531     3
-     154539.8918 158709.3912     3
-        496.0516    506.8311     3
-       1045.8786   1066.1202     3
-        187.2381    197.3868     3
+    Unit: microseconds
+                       expr           min            lq          mean
+                 stanford()  29295281.790  29400023.402  29734984.964
+       sentimentr_jockers()    228599.112    234849.279    241180.734
+         sentimentr_huliu()    266767.251    271540.065    280659.613
+     sentimentr_sentiword()   1015145.899   1028339.030   1050132.847
+               RSentiment() 194034175.571 201517746.098 283900476.987
+        SentimentAnalysis()   8380587.287   8703374.491   8815665.514
+          syuzhet_syuzhet()    464279.337    483483.492    492185.992
+             syuzhet_binn()    400259.877    410813.191    417908.880
+              syuzhet_nrc()    765286.614    926356.089    987816.747
+            syuzhet_afinn()    177743.019    185607.456    190791.706
+                    meanr()       978.744      1199.208      1358.363
+            median            uq           max neval
+      29504765.013  29954836.552  30404908.090     3
+        241099.445    247471.545    253843.644     3
+        276312.879    287605.794    298898.709     3
+       1041532.162   1067626.321   1093720.480     3
+     209001316.624 328833627.696 448665938.767     3
+       9026161.695   9033204.628   9040247.560     3
+        502687.646    506139.319    509590.993     3
+        421366.506    426733.381    432100.256     3
+       1087425.564   1099081.813   1110738.062     3
+        193471.893    197316.050    201160.206     3
+          1419.672      1548.173      1676.674     3
 
-Comparing sentimentr, syuzhet, RSentiment, and Stanford
--------------------------------------------------------
+Comparing sentimentr, syuzhet, meanr, and Stanford
+--------------------------------------------------
 
 The accuracy of an algorithm weighs heavily into the decision as to what
-approach to take in sentiment detection. Both **syuzhet** and
-**sentimentr** provide multiple dictionaries with a general algorithm to
-compute sentiment scores. **syuzhet** provides 3 approaches while
-**sentimentr** provides 2, but can be extended easily using the 3
-dictionaries from the **syuzhet** package. The follow visualization
-provides the accuracy of these approaches in comparison to Stanford's
-**Java** based implementation of sentiment detection. The visualization
-is generated from testing on three reviews data sets from Kotzias,
-Denil, De Freitas, & Smyth (2015). These authors utilized the three 1000
-element data sets from:
+approach to take in sentiment detection. I have selected
+algorithms/packages that stand out as fast and/or accurate to perform
+benchmarking on actual data. Both **syuzhet** and **sentimentr** provide
+multiple dictionaries with a general algorithm to compute sentiment
+scores. **syuzhet** provides 4 approaches while **sentimentr** provides
+2, but can be extended easily using the 4 dictionaries from the
+**syuzhet** package. **meanr** is a very fast algorithm. The follow
+visualization provides the accuracy of these approaches in comparison to
+Stanford's **Java** based implementation of sentiment detection. The
+visualization is generated from testing on three reviews data sets from
+Kotzias, Denil, De Freitas, & Smyth (2015). These authors utilized the
+three 1000 element data sets from:
 
 -   amazon.com
 -   imdb.com
@@ -593,15 +759,16 @@ right shows how the rankings for the methods varied across the three
 review contexts.
 
 The take away here seems that, unsurprisingly, Stanford's algorithm
-consistently outscores **sentimentr**, **syuzhet**, and **RSentiment**.
-The **sentimentr** approach loaded with the `hu_lu` dictionary is a top
-pick for speed and accuracy. The `bing` dictionary also performs well
-within both the **syuzhet** and **sentimentr** algorithms. Generally,
-the **sentimentr** algorithm out performs **syuzhet** when their
-dictonaries are comparable.
+consistently outscores **sentimentr**, **syuzhet**, and **meanr**. The
+**sentimentr** approach loaded with the Jockers' custom **syuzhet**
+dictionary is a top pick for speed and accuracy. In addition to Jockers'
+custom dictionary the `bing` dictionary also performs well within both
+the **syuzhet** and **sentimentr** algorithms. Generally, the
+**sentimentr** algorithm out performs **syuzhet** when their
+dictionaries are comparable.
 
 It is important to point out that this is a small sample data set that
-covers a narrow range of uses for sentiment detection. Jocker's
+covers a narrow range of uses for sentiment detection. Jockers'
 **syuzhet** was designed to be applied across book chunks and it is, to
 some extent, unfair to test it out of this context. Still this initial
 analysis provides a guide that may be of use for selecting the sentiment
@@ -624,16 +791,17 @@ better at:
 -   Detecting negative sentiment as negative
 -   Discrimination (i.e., reducing neutral assignments)
 
-The Bing, Hu & Lu, and Afinn dictionaries all do well with regard to not
-assigning negative scores to positive statements, but perform less well
-in the reverse, often assigning positive scores to negative statements.
+The Jockers, Bing, Hu & Lu, and Afinn dictionaries all do well with
+regard to not assigning negative scores to positive statements, but
+perform less well in the reverse, often assigning positive scores to
+negative statements, though Jockers' dictionary outperforms the others.
 We can now see that the reason for the NRC's poorer performance in
 accuracy rate above is its inability to discriminate. The Sentiword
 dictionary does well at discriminating (like Stanford's coreNLP) but
 lacks accuracy. We can deduce two things from this observation:
 
 1.  Larger dictionaries discriminate better (Sentiword \[n =
-    20,100\] vs. Hu & Lu \[n = 6,872\])
+    20,100\] vs. Hu & Lu \[n = 6,875\])
 2.  The Sentiword dictionary may have words with reversed polarities
 
 A reworking of the Sentiword dictionary may yield better results for a

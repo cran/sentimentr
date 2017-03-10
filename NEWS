@@ -17,6 +17,68 @@ And constructed with the following guidelines:
 * Bug fixes and misc changes bumps the patch
 
 
+sentimentr 0.5.0 - 1.0.0
+----------------------------------------------------------------
+
+BUG FIXES
+
+* Previously `update_polarity_table` and `update_valence_shifter_table` were
+  accidentally not exported.  This has been corrected.
+
+NEW FEATURES
+
+* `downweighted_zero_average`, `average_weighted_mixed_sentiment`, and 
+  `average_mean` added for use with `sentiment_by` to reweight
+  zero and negative values in the group by averaging (depending upon the 
+  assumptions the analysts is making).
+  
+* `general_rescale` added as a means to rescale sentiment scores in a 
+  generalized way.
+  
+* `validate_sentiment` added as a means to assess sentiment model performance
+  against known sentiment scores.
+  
+* `sentiment_attributes` added as a means to assess the rate that sentiment
+  attributes (attributes about polarized words and valence shifters) occur and 
+  cooccur.
+
+MINOR FEATURES
+
+* `sentiment_by` becomes a method function that now accepts `sentiment_by`
+  and `sentiment` objects for `text.var` argument in addition to default
+  `character`.
+
+IMPROVEMENTS
+
+* `sentiment_by` picks up an `averaging.function` argument for performing the 
+  group by averaging.  The default uses `downweighted_zero_average`, which 
+  downweights zero values in the averaging (making them have less impact).  To
+  get the old behavior back use `average_mean` as follows.  There is also an
+  `average_weighted_mixed_sentiment` available which upweights negative 
+  sentences when the analysts suspects the speaker is likely to surround 
+  negatives with positives (mixed) as a polite social convention but still the 
+  affective state is negative.
+
+CHANGES
+
+* The hash keys `polarity_table`, `valence_shifters_table`, and `sentiword` have
+  been moved to the **lexicon** (https://github.com/trinker/lexicon) package in
+  order to make them more modular and maintainable.  They have been renamed to
+  `hash_sentiment_huliu`, `hash_valence_shifters`, and `hash_sentiment_sentiword`.
+  
+* The `replace_emoticon`, `replace_grade` and `replace_rating` functions have 
+  been moved from **sentimentr** to the **textclean** package as these are 
+  cleaning functions.  This makes the functions more modular and generalizable 
+  to all types of text cleaning.  These functions are still imported and 
+  exported by **sentimentr**.
+
+* `but.weight` argument in `sentiment` function renamed to `adversative.weight`
+  to better describe the function with a linguistics term.
+
+* `sentimentr` now uses the Jockers (2017) dictionary by default rather than the 
+  Hu & Liu (2004).  THis may result in breaks to backwards compatibility,
+  hence the major version bump (1.0.0).
+
 sentimentr 0.3.0 - 0.4.0
 ----------------------------------------------------------------
 

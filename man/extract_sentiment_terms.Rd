@@ -4,8 +4,8 @@
 \alias{extract_sentiment_terms}
 \title{Extract Sentiment Words}
 \usage{
-extract_sentiment_terms(text.var, polarity_dt = sentimentr::polarity_table,
-  hyphen = "", ...)
+extract_sentiment_terms(text.var,
+  polarity_dt = lexicon::hash_sentiment_jockers, hyphen = "", ...)
 }
 \arguments{
 \item{text.var}{The text variable.}
@@ -17,7 +17,7 @@ weights with x and y as column names.}
 with nothing so 'sugar-free' becomes 'sugarfree'.  Setting \code{hyphen = " "}
 would result in a space between words (e.g., 'sugar free').}
 
-\item{\ldots}{ignored.}
+\item{\ldots}{Ignored.}
 }
 \value{
 Returns a \pkg{data.table} with columns of positive and 
@@ -29,7 +29,7 @@ Extract the sentiment words from a text.
 \examples{
 library(data.table)
 set.seed(10)
-x <- sample(cannon_reviews[[3]], 3000, TRUE)
+x <- sample(cannon_reviews[[3]], 1000, TRUE)
 sentiment(x)
 
 pol_words <- extract_sentiment_terms(x)
@@ -41,4 +41,3 @@ data.table::as.data.table(pol_words)
 attributes(extract_sentiment_terms(x))$counts
 attributes(extract_sentiment_terms(x))$elements
 }
-

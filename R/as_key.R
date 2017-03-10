@@ -23,11 +23,11 @@
 #' character and containing the words and the second column being numeric values
 #' that are positive or negative.  \code{valence_shifters_dt} takes a 2 column 
 #' \code{data.frame} (named x and y) with the first column being character and 
-#' containing the words and the second column being integer coresponding to:
-#' (1) negators, (2) amplifiers, (3) de-amplifiers, and ``but'' conjunction (4). 
-#' Also, note that if you are updating a \code{valence_shifters_dt} you need an 
-#' appropriate \code{comparison}; most likely, 
-#' \code{comparison = sentimentr::polarity_dt}.  
+#' containing the words and the second column being integer corresponding to:
+#' (1) negators, (2) amplifiers, (3) de-amplifiers, and (4) dversative 
+#' conjunctions (i.e., 'but', 'however', and 'although').  Also, note that if 
+#' you are updating a \code{valence_shifters_dt} you need an appropriate 
+#' \code{comparison}; most likely, \code{comparison = sentimentr::polarity_dt}.  
 #' @export
 #' @rdname as_key
 #' @examples
@@ -51,7 +51,18 @@
 #'
 #' ## Add terms & drop to/from a key
 #' update_key(mykey, drop = c("f", "h"), x = data.frame(x = c("dog", "cat"), y = c(1, -1)))
-#'
+#' 
+#' ## Explicity key type (wrapper for `update_key` for sentiment table.
+#' ## See `update_valence_shifter_table` a corresponding valence shifter updater.
+#' library(lexicon)
+#' updated_hash_sentiment <- sentimentr:::update_polarity_table(lexicon::hash_sentiment_huliu,
+#'     x = data.frame(
+#'         words = c('frickin', 'hairy'),
+#'         polarity = c(-1, -1),
+#'         stringsAsFactors = FALSE
+#'     )
+#' )
+#' 
 #' ## Checking if you have a key
 #' is_key(mykey)
 #' is_key(key)
@@ -63,6 +74,7 @@
 #' library(syuzhet)
 #' as_key(syuzhet:::bing)
 #' as_key(syuzhet:::afinn)
+#' as_key(syuzhet:::syuzhet_dict)
 #' nrc <- data.frame(
 #'     words = rownames(syuzhet:::nrc),
 #'     polarity = syuzhet:::nrc[, "positive"] - syuzhet:::nrc[, "negative"],
@@ -97,7 +109,7 @@
 #'
 #' geninq_pol %>% plot()
 #' }
-as_key <- function(x, comparison = sentimentr::valence_shifters_table, sentiment = TRUE, ...){
+as_key <- function(x, comparison = lexicon::hash_valence_shifters, sentiment = TRUE, ...){
 
     stopifnot(is.data.frame(x))
 
@@ -154,7 +166,7 @@ as_key <- function(x, comparison = sentimentr::valence_shifters_table, sentiment
 #' @export
 #' @rdname as_key
 update_key <- function(key, drop = NULL, x = NULL,
-    comparison = sentimentr::valence_shifters_table, sentiment = FALSE, ...){
+    comparison = lexicon::hash_valence_shifters, sentiment = FALSE, ...){
 
     stopifnot(is_key(key, sentiment = sentiment))
 
@@ -191,7 +203,8 @@ update_key <- function(key, drop = NULL, x = NULL,
 #'
 #' \code{update_polarity_table} - Wrapper for \code{update_key} specifically for
 #' updating polarity tables.
-#'
+#' 
+#' @export
 #' @rdname as_key
 update_polarity_table <- update_key
 
@@ -200,10 +213,11 @@ update_polarity_table <- update_key
 #'
 #' \code{update_valence_shifter_table} - Wrapper for \code{update_key} 
 #' specifically for updating valence shifter tables.
-#'
+#' 
+#' @export
 #' @rdname as_key
 update_valence_shifter_table <- function(key, drop = NULL, x = NULL,
-    comparison = sentimentr::polarity_table, sentiment = FALSE, ...){
+    comparison = lexicon::hash_sentiment_jockers, sentiment = FALSE, ...){
 
     update_key(key = key, drop = drop, x = x, comparison = comparison, sentiment = sentiment, ...)
 }
