@@ -1,3 +1,9 @@
+make_class <- function(x, ...) {
+    class(x) <- unique(c(..., class(x)))    
+    x
+}
+
+
 #get_sents <- function(x) {
 #    x <- stringi::stri_replace_all_regex(stringi::stri_trans_tolower(x), sent_regex, "")
 #    stringi::stri_split_regex(x, "(?<!\\w\\.\\w.)(?<![A-Z][a-z]\\.)(?<=\\.|\\?|\\!)\\s")
@@ -129,12 +135,30 @@ make_words <- function(x, hyphen = ""){
 
 
 #' @importFrom data.table :=
+# make_sentence_df2 <- function(sents){
+# 
+#     indx <- wc <- NULL
+# 
+#     ids <- add_row_id(sents)
+#     text.var <- gsub("[^a-z',;: ]|\\d:\\d|\\d ", "", unlist(sents))
+#     dat <- data.frame(
+#         id = ids,
+#         sentences = text.var,
+#     	  wc = count_words(text.var),
+#         stringsAsFactors = FALSE
+#     )
+#     data.table::setDT(dat)
+#     dat[, indx:= wc < 1, by=c('id', 'sentences', 'wc')][(indx), c('sentences', 'wc'):=NA][, 
+#         indx:=NULL]
+# }
 make_sentence_df2 <- function(sents){
 
     indx <- wc <- NULL
 
     ids <- add_row_id(sents)
-    text.var <- gsub("[^a-z',;: ]|\\d:\\d|\\d ", "", unlist(sents))
+    text.var <- gsub("[^a-z',;: ]|\\d:\\d|\\d ", "", 
+        stringi::stri_trans_tolower(gsub("(\\s*)([;:,]+)", " \\2", unlist(sents)))
+    )
     dat <- data.frame(
         id = ids,
         sentences = text.var,
@@ -142,7 +166,8 @@ make_sentence_df2 <- function(sents){
         stringsAsFactors = FALSE
     )
     data.table::setDT(dat)
-    dat[, indx:= wc < 1, by=c('id', 'sentences', 'wc')][(indx), c('sentences', 'wc'):=NA][, indx:=NULL]
+    dat[, indx:= wc < 1, by=c('id', 'sentences', 'wc')][(indx), c('sentences', 'wc'):=NA][, 
+        indx:=NULL][]
 }
 
 .mgsub <- function (pattern, replacement, text.var, fixed = TRUE,
@@ -266,3 +291,24 @@ if_tibble <- function(x, as.tibble, ...){
     if(!isTRUE(as.tibble)) return(x)
     set_tibble(x)
 }
+
+split_warn <- function(data, fun, len = 1000, nchar = 25000, sentimentr.warning = getOption("sentimentr.warning"), ...){
+    
+    if (!is.null(sentimentr.warning) && !isTRUE(sentimentr.warning)) return(NULL)
+    if (length(data) <= len && max(nchar(data), na.rm = TRUE) <= nchar) return(NULL) 
+    
+    warning(paste0('Each time `', fun, '` is run it has to do sentence boundary ',
+        'disambiguation when a raw `character` vector is passed to `text.var`. ', 
+        'This may be costly of time and memory.  It is highly recommended that ',
+        'the user first runs the raw `character` vector through the `get_sentences` function.'
+    ))
+    
+}
+
+log_loss <- function(a, p){
+    p[p == 0] <- .000000000000001
+    p[p == 1] <- .999999999999999
+    o <- -1 * (a * log(p) + (1 - a) * log(1 - p))
+    mean(o)
+}
+

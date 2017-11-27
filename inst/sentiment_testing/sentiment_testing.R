@@ -41,7 +41,8 @@ results_list <- file.path(loc, "sentiment labelled sentences") %>%
         setNames(c("text", "rating")) %>%
         na.omit() %>%
         mutate(rating = 2*(as.numeric(rating) - .5)) %>%
-        split_sentence()# %>% slice(1:10)
+        split_sentence() %>%
+        mutate(text2 = sentimentr::get_sentences(text))# %>% slice(1:10)
 
     ## syuzhet sentiment
     syuzhet <- setNames(as.data.frame(lapply(c("syuzhet", "bing", "afinn", "nrc"),
@@ -61,12 +62,12 @@ results_list <- file.path(loc, "sentiment labelled sentences") %>%
 
         stanford = round(sentiment_stanford_by(dat[["text"]])[["ave_sentiment"]], 2),
 
-        sentimentr_hu_liu = round(sentiment_by(dat$text, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_sentiword = round(sentiment_by(dat$text, polarity_dt = lexicon::hash_sentiword, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_syuzhet_dict = round(sentiment_by(dat$text, polarity_dt = syuzhet_dict, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_bing = round(sentiment_by(dat$text, polarity_dt = bing, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_afinn = round(sentiment_by(dat$text, polarity_dt = afinn, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_nrc = round(sentiment_by(dat$text, polarity_dt = nrc, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_hu_liu = round(sentiment_by(dat$text2, polarity_dt = lexicon::hash_sentiment_huliu, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_sentiword = round(sentiment_by(dat$text2, polarity_dt = lexicon::hash_sentiment_sentiword, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_syuzhet_dict = round(sentiment_by(dat$text2, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_bing = round(sentiment_by(dat$text2, polarity_dt = bing, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_afinn = round(sentiment_by(dat$text2, polarity_dt = afinn, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_nrc = round(sentiment_by(dat$text2, polarity_dt = nrc, question.weight = 0)[["ave_sentiment"]], 2),
 
         #RSentiment = RSentiment,
 
@@ -86,7 +87,7 @@ results_list <- file.path(loc, "sentiment labelled sentences") %>%
         {suppressWarnings(left_join(.,
             out %>%
                 tbl_df() %>%
-                select(-c(sentence_id, text)) %>%
+                select(-c(sentence_id, text, text2)) %>%
                 gather(Method, score, -c(rating, element_id)) %>%
                 group_by(Method, element_id) %>%
                 summarize(score = mean(score), rating=mean(rating)) %>%

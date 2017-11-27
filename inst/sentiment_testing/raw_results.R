@@ -1,16 +1,16 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load_current_gh("trinker/sentimentr", "trinker/stansent", "trinker/textshape", 
-    "sfeuerriegel/SentimentAnalysis", "wrathematics/meanr")
+    "sfeuerriegel/SentimentAnalysis", "wrathematics/meanr", 'textreadr')
 pacman::p_load(syuzhet, dplyr, tidyr, downloader, ggplot2, RSentiment)
 
 loc <- "sentiment_data"
 dir.create(loc)
 
 'http://archive.ics.uci.edu/ml/machine-learning-databases/00331/sentiment%20labelled%20sentences.zip' %>%
-    download(file.path(loc, "sentiment_labelled_sentences.zip"), mode = "wb")
-
-unzip(file.path(loc, "sentiment_labelled_sentences.zip"), exdir = loc)
-
+    download() %>%
+    unzip(exdir = loc)
+	
+	
 ## function to see if the signs of two columns differ row by row
 ## NA means you couldn't figure it out and thus results in a FALSE
 signer <- function(x, y) {
@@ -47,7 +47,8 @@ results_list <- file.path(loc, "sentiment labelled sentences") %>%
         na.omit() %>%
         mutate(rating = 2*(as.numeric(rating) - .5)) %>%
         mutate(text = replace_emograte(text)) %>%  
-        split_sentence() #%>% slice(1:10)
+        textshape::split_sentence() %>%
+        mutate(text2 = sentimentr::get_sentences(text)) #%>% slice(1:10)
 
     ## syuzhet sentiment
     syuzhet <- setNames(as.data.frame(lapply(c("syuzhet", "bing", "afinn", "nrc"),
@@ -66,12 +67,12 @@ results_list <- file.path(loc, "sentiment labelled sentences") %>%
 
         stanford = round(sentiment_stanford_by(dat[["text"]])[["ave_sentiment"]], 2),
 
-        sentimentr_hu_liu = round(sentiment_by(dat$text, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_sentiword = round(sentiment_by(dat$text, polarity_dt = lexicon::hash_sentiword, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_syuzhet_dict = round(sentiment_by(dat$text, polarity_dt = syuzhet_dict, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_bing = round(sentiment_by(dat$text, polarity_dt = bing, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_afinn = round(sentiment_by(dat$text, polarity_dt = afinn, question.weight = 0)[["ave_sentiment"]], 2),
-        sentimentr_nrc = round(sentiment_by(dat$text, polarity_dt = nrc, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_hu_liu = round(sentiment_by(dat$text2, polarity_dt = lexicon::hash_sentiment_huliu, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_sentiword = round(sentiment_by(dat$text2, polarity_dt = lexicon::hash_sentiment_sentiword, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_syuzhet_dict = round(sentiment_by(dat$text2, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_bing = round(sentiment_by(dat$text2, polarity_dt = bing, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_afinn = round(sentiment_by(dat$text2, polarity_dt = afinn, question.weight = 0)[["ave_sentiment"]], 2),
+        sentimentr_nrc = round(sentiment_by(dat$text2, polarity_dt = nrc, question.weight = 0)[["ave_sentiment"]], 2),
 
         #RSentiment = RSentiment,
 
@@ -92,6 +93,7 @@ results_list <- file.path(loc, "sentiment labelled sentences") %>%
 
 results_list %>%
     tidy_list("Context") %>%
+    select(-text2) %>%
     gather(Method, Score, -c(text, rating, Context, element_id, sentence_id)) %>%
     tbl_df() %>%
     group_by(Method, Context, element_id) %>%

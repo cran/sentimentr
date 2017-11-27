@@ -17,6 +17,53 @@ And constructed with the following guidelines:
 * Bug fixes and misc changes bumps the patch
 
 
+sentimentr 2.0.1
+----------------------------------------------------------------
+
+BUG FIXES
+
+* `get_sentences` assigned the class to the data.frame when a data.frame was passed but not to the text column, meaning the individual column could not be passed to `sentiment` or `sentiment_by` without having sentence boundary detection re-done.  This has been fixed.  See #53.
+
+
+
+sentimentr 1.0.1 - 2.0.0
+----------------------------------------------------------------
+
+BUG FIXES
+
+* `sentiment_attributes` gave an incorrect count of words.  This has been fixed 
+  and number of tokens is reported as well now.  Thanks to Siva Kottapalli for
+  catching this (see #42).
+  
+* `extract_sentiment_terms` did not return positive, negative, and/or neutral
+  columns if these terms didn't exist in the data passed to `text.var` making it 
+  difficult to use for programming.  Thanks to Siva Kottapalli for
+  catching this (see #41).
+  
+* `rescale_general` would allow `keep.zero` when `lower` >= 0 meaning the 
+original mid values were rescaled lower than the lowest values.
+  
+  
+MINOR FEATURES
+
+* `validate_sentiment` picks up Mean Directional Accuracy (MDA) and Mean 
+  Absolute Rescaled Error (MARE) measures accuracy.  These values are printed 
+  for the `validate_sentiment` object and can be accessed via `attributes`.
+
+CHANGES
+
+* Many **sentimentr** functions performed sentence splitting (sentence boundary 
+  disambiguation) internally.  This made it (1) difficult to maintain the code,
+  (2) slowed the functions down and potentially increased overhead memory, and 
+  (3) required a repeated cost of splitting the text every time one of these
+  functions was called.  Sentence splitting is now handled vie the **textshape**
+  package as the backend for `get_sentences`.  It is recommended that the user
+  spits their data into sentences prior to using the sentiment functions.  Using
+  a raw character vector still works but results in a warning.  While this won't
+  break any code it may cause errors and is a fundamental shift in workflow,
+  thus the major bump to 2.0.0
+  
+  
 sentimentr 0.5.0 - 1.0.0
 ----------------------------------------------------------------
 
@@ -24,13 +71,13 @@ BUG FIXES
 
 * Previously `update_polarity_table` and `update_valence_shifter_table` were
   accidentally not exported.  This has been corrected.
-
+  
 NEW FEATURES
 
 * `downweighted_zero_average`, `average_weighted_mixed_sentiment`, and 
   `average_mean` added for use with `sentiment_by` to reweight
   zero and negative values in the group by averaging (depending upon the 
-  assumptions the analysts is making).
+  assumptions the analyst is making).
   
 * `general_rescale` added as a means to rescale sentiment scores in a 
   generalized way.
@@ -40,7 +87,7 @@ NEW FEATURES
   
 * `sentiment_attributes` added as a means to assess the rate that sentiment
   attributes (attributes about polarized words and valence shifters) occur and 
-  cooccur.
+  co-occur.
 
 MINOR FEATURES
 
@@ -76,7 +123,7 @@ CHANGES
   to better describe the function with a linguistics term.
 
 * `sentimentr` now uses the Jockers (2017) dictionary by default rather than the 
-  Hu & Liu (2004).  THis may result in breaks to backwards compatibility,
+  Hu & Liu (2004).  This may result in breaks to backwards compatibility,
   hence the major version bump (1.0.0).
 
 sentimentr 0.3.0 - 0.4.0

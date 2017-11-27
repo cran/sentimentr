@@ -1,4 +1,4 @@
-sentimentr   [![Follow](https://img.shields.io/twitter/follow/tylerrinker.svg?style=social)](https://twitter.com/intent/follow?screen_name=tylerrinker)
+sentimentr   
 ============
 
 
@@ -11,9 +11,8 @@ Status](https://travis-ci.org/trinker/sentimentr.svg?branch=master)](https://tra
 Status](https://coveralls.io/repos/trinker/sentimentr/badge.svg?branch=master)](https://coveralls.io/r/trinker/sentimentr?branch=master)
 [![DOI](https://zenodo.org/badge/5398/trinker/sentimentr.svg)](https://zenodo.org/badge/latestdoi/5398/trinker/sentimentr)
 [![](http://cranlogs.r-pkg.org/badges/sentimentr)](https://cran.r-project.org/package=sentimentr)
-<a href="https://img.shields.io/badge/Version-1.0.0-orange.svg"><img src="https://img.shields.io/badge/Version-1.0.0-orange.svg" alt="Version"/></a>
-</p>
-<img src="inst/sentimentr_logo/r_sentimentr.png" width="150" alt="readability Logo">
+
+![](tools/sentimentr_logo/r_sentimentr.png)
 
 **sentimentr** is designed to quickly calculate text polarity sentiment
 at the sentence level and optionally aggregate by rows or grouping
@@ -50,6 +49,8 @@ Table of Contents
 -   [The Equation](#the-equation)
 -   [Installation](#installation)
 -   [Examples](#examples)
+    -   [Preferred Workflow](#preferred-workflow)
+    -   [Tidy Approach](#tidy-approach)
     -   [Plotting](#plotting)
         -   [Plotting at Aggregated Sentiment](#plotting-at-aggregated-sentiment)
         -   [Plotting at the Sentence Level](#plotting-at-the-sentence-level)
@@ -67,22 +68,24 @@ Why sentimentr
 why does it matter?***
 
 > **sentimentr** attempts to take into account valence shifters (i.e.,
-> negators, amplifiers, de-amplifiers, and adversative conjunctions)
-> while maintaining speed. Simply put, **sentimentr** is an augmented
-> dictionary lookup. The next questions address why it matters.
+> negators, amplifiers (intensifiers), de-amplifiers (downtoners), and
+> adversative conjunctions) while maintaining speed. Simply put,
+> **sentimentr** is an augmented dictionary lookup. The next questions
+> address why it matters.
 
 ***So what are these valence shifters?***
 
 > A *negator* flips the sign of a polarized word (e.g., "I do ***not***
 > like it."). See `lexicon::hash_valence_shifters[y==1]` for examples.
-> An *amplifier* increases the impact of a polarized word (e.g., "I
-> ***really*** like it."). See `lexicon::hash_valence_shifters[y==2]`
-> for examples. A *de-amplifier* reduces the impact of a polarized word
-> (e.g., "I ***hardly*** like it."). See
-> `lexicon::hash_valence_shifters[y==3]` for examples. An *adversative
-> conjunction* overrules the previous clause containing a polarized word
-> (e.g., "I like it ***but*** it's not worth it."). See
-> `lexicon::hash_valence_shifters[y==4]` for examples.
+> An *amplifier* (intensifier) increases the impact of a polarized word
+> (e.g., "I ***really*** like it."). See
+> `lexicon::hash_valence_shifters[y==2]` for examples. A *de-amplifier*
+> (downtoner) reduces the impact of a polarized word (e.g., "I
+> ***hardly*** like it."). See `lexicon::hash_valence_shifters[y==3]`
+> for examples. An *adversative conjunction* overrules the previous
+> clause containing a polarized word (e.g., "I like it ***but*** it's
+> not worth it."). See `lexicon::hash_valence_shifters[y==4]` for
+> examples.
 
 ***Do valence shifters really matter?***
 
@@ -295,19 +298,20 @@ The cluster can be represented as
 where *n**b* & *n**a* are the parameters `n.before` and `n.after` set by
 the user. The words in this polarized context cluster are tagged as
 neutral (*w*<sub>*i*, *j*, *k*</sub><sup>0</sup>), negator
-(*w*<sub>*i*, *j*, *k*</sub><sup>*n*</sup>), amplifier
+(*w*<sub>*i*, *j*, *k*</sub><sup>*n*</sup>), amplifier \[intensifier\]
 (*w*<sub>*i*, *j*, *k*</sub><sup>*a*</sup>), or de-amplifier
-(*w*<sub>*i*, *j*, *k*</sub><sup>*d*</sup>). Neutral words hold no value
-in the equation but do affect word count (*n*). Each polarized word is
-then weighted (*w*) based on the weights from the `polarity_dt` argument
-and then further weighted by the function and number of the valence
-shifters directly surrounding the positive or negative word (*p**w*).
-Pause (*c**w*) locations (punctuation that denotes a pause including
-commas, colons, and semicolons) are indexed and considered in
-calculating the upper and lower bounds in the polarized context cluster.
-This is because these marks indicate a change in thought and words prior
-are not necessarily connected with words after these punctuation marks.
-The lower bound of the polarized context cluster is constrained to
+\[downtoner\] (*w*<sub>*i*, *j*, *k*</sub><sup>*d*</sup>). Neutral words
+hold no value in the equation but do affect word count (*n*). Each
+polarized word is then weighted (*w*) based on the weights from the
+`polarity_dt` argument and then further weighted by the function and
+number of the valence shifters directly surrounding the positive or
+negative word (*p**w*). Pause (*c**w*) locations (punctuation that
+denotes a pause including commas, colons, and semicolons) are indexed
+and considered in calculating the upper and lower bounds in the
+polarized context cluster. This is because these marks indicate a change
+in thought and words prior are not necessarily connected with words
+after these punctuation marks. The lower bound of the polarized context
+cluster is constrained to
 max{*p**w*<sub>*i*, *j*, *k* − *n**b*</sub>, 1, max{*c**w*<sub>*i*, *j*, *k*</sub> &lt; *p**w*<sub>*i*, *j*, *k*</sub>}}
 and the upper bound is constrained to
 min{*p**w*<sub>*i*, *j*, *k* + *n**a*</sub>, *w*<sub>*i*, *j**n*</sub>, min{*c**w*<sub>*i*, *j*, *k*</sub> &gt; *p**w*<sub>*i*, *j*, *k*</sub>}}
@@ -398,13 +402,28 @@ Examples
 ========
 
     if (!require("pacman")) install.packages("pacman")
-    pacman::p_load(sentimentr)
+    pacman::p_load(sentimentr, dplyr, magrittr)
+
+Preferred Workflow
+------------------
+
+Here is a basic `sentiment` demo. Notice that the first thing you should
+do is to split your text data into sentences (a process called sentence
+boundary disambiguation) via the `get_sentences` function. This can be
+handled within `sentiment` (i.e., you can pass a raw character vector)
+but it slows the function down and should be done one time rather than
+every time the function is called. Additionally, a warning will be
+thrown if a larger raw character vector is passed. The preferred
+workflow is to spit the text into sentences with `get_sentences` before
+any sentiment analysis is done.
 
     mytext <- c(
         'do you like it?  But I hate really bad dogs',
         'I am the best friend.',
         'Do you really like it?  I\'m not a fan'
     )
+
+    mytext <- get_sentences(mytext)
     sentiment(mytext)
 
     ##    element_id sentence_id word_count  sentiment
@@ -422,6 +441,7 @@ To aggregate by element (column cell or vector element) use
         'I am the best friend.',
         'Do you really like it?  I\'m not a fan'
     )
+    mytext <- get_sentences(mytext)
     sentiment_by(mytext)
 
     ##    element_id word_count       sd ave_sentiment
@@ -432,7 +452,56 @@ To aggregate by element (column cell or vector element) use
 To aggregate by grouping variables use `sentiment_by` using the `by`
 argument.
 
-    (out <- with(presidential_debates_2012, sentiment_by(dialogue, list(person, time))))
+    (out <- with(
+        presidential_debates_2012, 
+        sentiment_by(
+            get_sentences(dialogue), 
+            list(person, time)
+        )
+    ))
+
+    ##        person   time word_count        sd ave_sentiment
+    ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
+    ##  2:     OBAMA time 2       7476 0.2399589    0.11663216
+    ##  3:     OBAMA time 3       7241 0.2614870    0.11842952
+    ##  4:    ROMNEY time 1       4085 0.2505313    0.12462353
+    ##  5:    ROMNEY time 2       7534 0.2382667    0.08540709
+    ##  6:    ROMNEY time 3       8302 0.2846332    0.10652350
+    ##  7:   CROWLEY time 2       1672 0.1878174    0.17977897
+    ##  8:    LEHRER time 1        765 0.2847680    0.18338771
+    ##  9:  QUESTION time 2        583 0.2076347    0.06625726
+    ## 10: SCHIEFFER time 3       1445 0.2471048    0.08780297
+
+Tidy Approach
+-------------
+
+Or if you prefer a more tidy approach:
+
+    library(magrittr)
+    library(dplyr)
+
+    presidential_debates_2012 %>%
+        dplyr::mutate(dialogue_split = get_sentences(dialogue)) %$%
+        sentiment_by(dialogue_split, list(person, time))
+
+    ##        person   time word_count        sd ave_sentiment
+    ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
+    ##  2:     OBAMA time 2       7476 0.2399589    0.11663216
+    ##  3:     OBAMA time 3       7241 0.2614870    0.11842952
+    ##  4:    ROMNEY time 1       4085 0.2505313    0.12462353
+    ##  5:    ROMNEY time 2       7534 0.2382667    0.08540709
+    ##  6:    ROMNEY time 3       8302 0.2846332    0.10652350
+    ##  7:   CROWLEY time 2       1672 0.1878174    0.17977897
+    ##  8:    LEHRER time 1        765 0.2847680    0.18338771
+    ##  9:  QUESTION time 2        583 0.2076347    0.06625726
+    ## 10: SCHIEFFER time 3       1445 0.2471048    0.08780297
+
+Note that you can skip the `dplyr::mutate` step by using `get_sentences`
+on a `data.frame` as seen below:
+
+    presidential_debates_2012 %>%
+        get_sentences() %$%
+        sentiment_by(dialogue, list(person, time))
 
     ##        person   time word_count        sd ave_sentiment
     ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
@@ -453,7 +522,7 @@ Plotting
 
     plot(out)
 
-![](inst/figure/unnamed-chunk-9-1.png)
+![](tools/figure/unnamed-chunk-11-1.png)
 
 ### Plotting at the Sentence Level
 
@@ -466,7 +535,7 @@ overall shape of the text's sentiment. The user can see
 
     plot(uncombine(out))
 
-![](inst/figure/unnamed-chunk-10-1.png)
+![](tools/figure/unnamed-chunk-12-1.png)
 
 Making and Updating Dictionaries
 --------------------------------
@@ -615,6 +684,16 @@ SentiWord lexicons available from the
         stringsAsFactors = FALSE
     ), "sentences")
 
+    [1] "Processing sentence: i have not been sad in a long time"
+    [1] "Processing sentence: i am extremely happy today"
+    [1] "Processing sentence: its a good day"
+    [1] "Processing sentence: but suddenly im only a little bit happy"
+    [1] "Processing sentence: then im not happy at all"
+    [1] "Processing sentence: in fact i am now the least happy person on the planet"
+    [1] "Processing sentence: there is no happiness left in me"
+    [1] "Processing sentence: wait its returned"
+    [1] "Processing sentence: i do not feel so bad after all"
+
       stanford sentimentr_jockers sentimentr_huliu sentimentr_sentiword
     1     -0.5               0.18             0.35                 0.18
     2        1                0.6              0.8                 0.65
@@ -626,15 +705,15 @@ SentiWord lexicons available from the
     8        0              -0.14                0                -0.14
     9     -0.5               0.28             0.38                 0.24
       RSentiment SA_GI SA_LM SA_QDAP meanr syuzhet bing afinn nrc
-    1         -1 -0.25     0   -0.25    -1    -0.5   -1    -2   0
+    1          1 -0.25     0   -0.25    -1    -0.5   -1    -2   0
     2          1  0.33  0.33       0     1    0.75    1     3   1
     3          1   0.5   0.5     0.5     1    0.75    1     3   1
     4          0     0  0.25    0.25     1    0.75    1     3   1
     5         -1     1     1       1     1    0.75    1     3   1
     6          1  0.17  0.17    0.33     1    0.75    1     3   1
-    7          0   0.5   0.5     0.5     1    0.75    1     2   1
-    8          0     0     0       0     0   -0.25    0     0  -1
-    9         -1 -0.33 -0.33   -0.33    -1   -0.75   -1    -3  -1
+    7          1   0.5   0.5     0.5     1    0.75    1     2   1
+    8         -1     0     0       0     0   -0.25    0     0  -1
+    9          0 -0.33 -0.33   -0.33    -1   -0.75   -1    -3  -1
       sentences                                              
     1 I haven't been sad in a long time.                     
     2 I am extremely happy today.                            
@@ -661,12 +740,12 @@ than other methods but is returning 3 scores from 3 different
 dictionaries.
 
     ase_100 <- rep(ase, 100)
-
+     
     stanford <- function() {sentiment_stanford(ase_100)}
 
-    sentimentr_jockers <- function() sentiment(ase_100, lexicon::hash_sentiment_jockers)
-    sentimentr_huliu <- function() sentiment(ase_100, lexicon::hash_sentiment_huliu)
-    sentimentr_sentiword <- function() sentiment(ase_100, lexicon::hash_sentiment_sentiword) 
+    sentimentr_jockers <- function() sentiment(ase, lexicon::hash_sentiment_jockers)
+    sentimentr_huliu <- function() sentiment(ase, lexicon::hash_sentiment_huliu)
+    sentimentr_sentiword <- function() sentiment(ase, lexicon::hash_sentiment_sentiword) 
         
     RSentiment <- function() calculate_score(ase_100) 
         
@@ -742,8 +821,10 @@ three 1000 element data sets from:
 -   yelp.com
 
 The data sets are hand scored as either positive or negative. The
-testing here merely matches the sign of the algorithm to the human coded
-output to determine accuracy rates.
+testing here uses [Mean Directional Accuracy
+(MDA)](https://en.wikipedia.org/wiki/Mean_Directional_Accuracy_(MDA))
+and merely matches the sign of the algorithm to the human coded output
+to determine accuracy rates.
 
 -   Kotzias, D., Denil, M., De Freitas, N., & Smyth,P. (2015). *From
     group to individual labels using deep features*. Proceedings of the
@@ -751,7 +832,7 @@ output to determine accuracy rates.
     Data Mining. 597-606.
     <http://mdenil.com/media/papers/2015-deep-multi-instance-learning.pdf>
 
-<img src="inst/figure/comparisons_between_sentiment_detectors_b.png" width="100%" alt="sent comp">
+![](tools/figure/comparisons_between_sentiment_detectors_b.png)
 
 The bar graph on the left shows the accuracy rates for the various
 sentiment set-ups in the three review contexts. The rank plot on the
@@ -783,7 +864,7 @@ In the figure below we compare raw table counts as a heat map, plotting
 the predicted values from the various algorithms on the x axis versus
 the human scored values on the y axis.
 
-<img src="inst/figure/comparisons_between_sentiment_detectors2.png" width = "80%" alt="sent comp">
+![](tools/figure/comparisons_between_sentiment_detectors2.png)
 
 Across all three contexts, notice that the Stanford coreNLP algorithm is
 better at:
@@ -823,10 +904,17 @@ wraps a `sentiment_by` output to produces a highlighted HTML file
 reviews from Hu and Liu's (2004) Cannon G3 Camera Amazon product
 reviews.
 
+    library(magritrr)
+    library(dplyr)
     set.seed(2)
-    highlight(with(subset(cannon_reviews, number %in% sample(unique(number), 3)), sentiment_by(review, number)))
 
-![](inst/figure/highlight.png)
+    cannon_reviews %>%
+        filter(number %in% sample(unique(number), 3)) %>%
+        mutate(review = get_sentences(review)) %$%
+        sentiment_by(review, number) %>%
+        highlight()
+
+![](tools/figure/highlight.png)
 
 Contact
 =======

@@ -39,10 +39,20 @@
 #' mytext <- c(
 #'    'do you like it?  It is red. But I hate really bad dogs',
 #'    'I am the best friend.',
-#'    'Do you really like it?  I\'m not happy'
+#'    "Do you really like it?  I'm not happy"
 #' )
+#' 
+#' ## works on a character vector but not the preferred method avoiding the 
+#' ## repeated cost of doing sentence boundary disambiguation every time 
+#' ## `sentiment` is run
+#' \dontrun{
 #' sentiment(mytext)
-#'
+#' sentiment_by(mytext)
+#' }
+#' 
+#' ## preferred method avoiding paying the cost 
+#' mytext <- get_sentences(mytext)
+#' 
 #' sentiment_by(mytext)
 #' sentiment_by(mytext, averaging.function = average_mean)
 #' sentiment_by(mytext, averaging.function = average_weighted_mixed_sentiment)
@@ -51,9 +61,17 @@
 #' (mysentiment <- sentiment_by(mytext, question.weight = 0))
 #' stats::setNames(get_sentences(sentiment_by(mytext, question.weight = 0)),
 #'     round(mysentiment[["ave_sentiment"]], 3))
-#'
+#' 
+#' pres_dat <- get_sentences(presidential_debates_2012)
+#' 
+#' \dontrun{
+#' ## less optimized way
 #' with(presidential_debates_2012, sentiment_by(dialogue, person))
-#' (out <- with(presidential_debates_2012, sentiment_by(dialogue, list(person, time))))
+#' }
+#' 
+#' sentiment_by(pres_dat, 'person')
+#' 
+#' (out <- sentiment_by(pres_dat, c('person', 'time')))
 #' plot(out)
 #' plot(uncombine(out))
 #' 
@@ -64,20 +82,133 @@
 #' \dontrun{
 #' highlight(with(cannon_reviews, sentiment_by(review, number)))
 #' }
+#' 
+#' \dontrun{
+#' ## tidy approach
+#' library(dplyr)
+#' library(magrittr)
+#' 
+#' cannon_reviews %>%
+#'    mutate(review_split = get_sentences(review)) %$%
+#'    sentiment_by(review_split, number)
+#' }
 sentiment_by <- function(text.var, by = NULL, 
-    averaging.function = average_downweighted_zero, group.names, ...){
+    averaging.function = sentimentr::average_downweighted_zero, group.names, ...){
 
     UseMethod("sentiment_by")
 }
 
 
 #' @export
-#' @method sentiment_by character    
-sentiment_by.character <- function(text.var, by = NULL, 
-    averaging.function = average_downweighted_zero, group.names, ...){
+#' @method sentiment_by get_sentences_character    
+sentiment_by.get_sentences_character <- function(text.var, by = NULL, 
+    averaging.function = sentimentr::average_downweighted_zero, group.names, ...){
 
 	word_count <- ave_sentiment <- NULL
-    out <- sentiment(text.var = text.var, ...)
+    out <- suppressWarnings(sentiment(text.var = text.var, ...))
+
+    if (is.null(by)){
+        
+        out2 <- out[, list('word_count' = sum(word_count, na.rm = TRUE),
+        	  'sd' = stats::sd(sentiment, na.rm = TRUE),
+        	  'ave_sentiment' = averaging.function(sentiment)), by = "element_id"]
+        G <- "element_id"
+        uncombined <- out
+    } else {
+        if (is.list(by) & length(by) > 1) {
+            m <- unlist(as.character(substitute(by))[-1])
+            G <- sapply(strsplit(m, "$", fixed=TRUE), function(x) {
+                    x[length(x)]
+                }
+            )
+            grouping <- by
+        } else {
+            G <- as.character(substitute(by))
+            G <- G[length(G)]
+            grouping <- unlist(by)
+        }
+
+        if(!missing(group.names)) {
+            G <- group.names
+        }
+
+
+        group_dat <- stats::setNames(as.data.frame(grouping,
+            stringsAsFactors = FALSE), G)
+
+        data.table::setDT(group_dat)
+        group_dat <- group_dat[out[["element_id"]], ]
+
+        uncombined <- out2 <- cbind(group_dat, out)
+
+        out2 <- out2[, list('word_count' = sum(word_count, na.rm = TRUE),
+            'sd' = stats::sd(sentiment, na.rm = TRUE),
+            'ave_sentiment' = averaging.function(sentiment)), keyby = G]#[order(-ave_sentiment)]
+
+    }
+
+    class(out2) <- unique(c("sentiment_by", class(out)))
+    sentiment <- new.env(FALSE)
+    sentiment[["sentiment"]] <- out
+    attributes(out2)[["sentiment"]] <- sentiment
+    attributes(out2)[["groups"]] <- G
+
+    uncombine <- new.env(FALSE)
+    uncombine[["uncombine"]] <- uncombined
+    attributes(out2)[["uncombine"]] <- uncombine
+    out2
+
+}
+
+
+#' @export
+#' @method sentiment_by get_sentences_data_frame    
+sentiment_by.get_sentences_data_frame <- function(text.var, by = NULL, 
+    averaging.function = sentimentr::average_downweighted_zero, group.names, ...){
+
+    x <- make_class(unname(split(text.var[[attributes(text.var)[['text.var']]]], 
+        unlist(text.var[['element_id']]))), "get_sentences", "get_sentences_character")
+    
+	word_count <- ave_sentiment <- NULL
+    out <- sentiment(text.var = x, ...)
+
+    if (is.null(by)){
+        by <- "element_id"
+
+    }
+    
+    uncombined <- out2 <- cbind(text.var, out[, c('word_count', 'sentiment')])
+
+    out2 <- out2[, list('word_count' = sum(word_count, na.rm = TRUE),
+        'sd' = stats::sd(sentiment, na.rm = TRUE),
+        'ave_sentiment' = averaging.function(sentiment)), keyby = by]
+    
+    class(out2) <- unique(c("sentiment_by", class(out)))
+    sentiment <- new.env(FALSE)
+    sentiment[["sentiment"]] <- out
+    attributes(out2)[["sentiment"]] <- sentiment
+    attributes(out2)[["groups"]] <- by
+    
+    attributes(attributes(out2)[["sentiment"]][["sentiment"]])[['sentences']][['sentences']] <- x
+
+    uncombine <- new.env(FALSE)
+    uncombine[["uncombine"]] <- uncombined
+    attributes(out2)[["uncombine"]] <- uncombine
+    out2
+
+}
+
+
+
+#' @export
+#' @method sentiment_by character    
+sentiment_by.character <- function(text.var, by = NULL, 
+    averaging.function = sentimentr::average_downweighted_zero, group.names, ...){
+
+    split_warn(text.var, 'sentiment_by', ...)
+    
+	word_count <- ave_sentiment <- NULL
+    out <- suppressWarnings(sentiment(text.var = text.var, ...))
 
     if (is.null(by)){
         out2 <- out[, list('word_count' = sum(word_count, na.rm = TRUE),
@@ -135,7 +266,7 @@ sentiment_by.character <- function(text.var, by = NULL,
 #' @export
 #' @method sentiment_by sentiment_by    
 sentiment_by.sentiment_by <- function(text.var, by = NULL, 
-    averaging.function = average_downweighted_zero, group.names, ...){
+    averaging.function = sentimentr::average_downweighted_zero, group.names, ...){
 
 	word_count <- ave_sentiment <- NULL
     out <- attributes(text.var)[['sentiment']][['sentiment']]
@@ -196,7 +327,7 @@ sentiment_by.sentiment_by <- function(text.var, by = NULL,
 #' @export
 #' @method sentiment_by sentiment    
 sentiment_by.sentiment <- function(text.var, by = NULL, 
-    averaging.function = average_downweighted_zero, group.names, ...){
+    averaging.function = sentimentr::average_downweighted_zero, group.names, ...){
 
 	word_count <- ave_sentiment <- NULL
     out <- text.var

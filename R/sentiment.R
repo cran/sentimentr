@@ -7,7 +7,10 @@
 #' for more information.  Other hyper-parameters may add additional fine tuned 
 #' control of the algorithm that may boost performance in different contexts.
 #'
-#' @param text.var The text variable.
+#' @param text.var The text variable.  Can be a \code{get_sentences} object or
+#' a raw character vector though \code{get_sentences} is preferred as it avoids
+#' the repeated cost of doing sentence boundary disambiguation every time
+#' \code{sentiment} is run.
 #' @param polarity_dt A \pkg{data.table} of positive/negative words and
 #' weights with x and y as column names.  The \pkg{lexicon} package has 4 
 #' dictionaries that can be used here: \code{lexicon::hash_sentiment_huliu}, 
@@ -21,14 +24,14 @@
 #' Use \code{lexicon::hash_sentiment_huliu} to obtain the old behavior.
 #' @param valence_shifters_dt A \pkg{data.table} of valence shifters that
 #' can alter a polarized word's meaning and an integer key for negators (1),
-#' amplifiers(2), de-amplifiers (3) and (4) adversative conjunctions with x and 
-#' y as column names.
+#' amplifiers [intensifiers] (2), de-amplifiers [downtoners] (3) and adversative 
+#' conjunctions (4) with x and y as column names.
 #' @param hyphen The character string to replace hyphens with.  Default replaces
 #' with nothing so 'sugar-free' becomes 'sugarfree'.  Setting \code{hyphen = " "}
 #' would result in a space between words (e.g., 'sugar free').
-#' @param amplifier.weight The weight to apply to amplifiers/de-amplifiers (values
-#' from 0 to 1).  This value will multiply the polarized terms by 1 + this
-#' value.
+#' @param amplifier.weight The weight to apply to amplifiers/de-amplifiers 
+#' [intensifiers/downtoners] (values from 0 to 1).  This value will multiply the 
+#' polarized terms by 1 + this value.
 #' @param n.before The number of words to consider as valence shifters before
 #' the polarized word.  To consider the entire beginning portion of a sentence
 #' use \code{n.before = Inf}.
@@ -120,26 +123,27 @@
 #' where \eqn{nb} & \eqn{na} are the parameters \code{n.before} and \code{n.after}
 #' set by the user.  The words in this polarized context cluster are tagged as
 #' neutral (\eqn{w_{i,j,k}^{0}}{w_i,j,k^0}), negator (\eqn{w_{i,j,k}^{n}}{w_i,j,k^n}),
-#' amplifier (\eqn{w_{i,j,k}^{a}}{w_i,j,k^a}), or de-amplifier
-#' (\eqn{w_{i,j,k}^{d}}{w_i,j,k^d}). Neutral words hold no value in the equation but
-#' do affect word count (\eqn{n}).  Each polarized word is then weighted (\eqn{w})
-#' based on the weights from the \code{polarity_dt} argument and then further
-#' weighted by the function and number of the valence shifters directly surrounding the
-#' positive or negative word (\eqn{pw}).  Pause (\eqn{cw}) locations
-#' (punctuation that denotes a pause including commas, colons, and semicolons)
-#' are indexed and considered in calculating the upper and lower bounds in the
-#' polarized context cluster. This is because these marks indicate a change in
-#' thought and words prior are not necessarily connected with words after these
-#' punctuation marks.  The lower bound of the polarized context cluster is
-#' constrained to \eqn{\max \{pw_{i,j,k - nb}, 1, \max \{cw_{i,j,k} < pw_{i,j,k}\}\}} and the upper bound is
+#' amplifier [intensifier]] (\eqn{w_{i,j,k}^{a}}{w_i,j,k^a}), or de-amplifier
+#' [downtoner] (\eqn{w_{i,j,k}^{d}}{w_i,j,k^d}). Neutral words hold no value in 
+#' the equation but do affect word count (\eqn{n}).  Each polarized word is then 
+#' weighted (\eqn{w}) based on the weights from the \code{polarity_dt} argument 
+#' and then further weighted by the function and number of the valence shifters 
+#' directly surrounding the positive or negative word (\eqn{pw}).  Pause 
+#' (\eqn{cw}) locations (punctuation that denotes a pause including commas, 
+#' colons, and semicolons) are indexed and considered in calculating the upper 
+#' and lower bounds in the polarized context cluster. This is because these marks 
+#' indicate a change in thought and words prior are not necessarily connected 
+#' with words after these punctuation marks.  The lower bound of the polarized 
+#' context cluster is constrained to 
+#' \eqn{\max \{pw_{i,j,k - nb}, 1, \max \{cw_{i,j,k} < pw_{i,j,k}\}\}} and the upper bound is
 #' constrained to \eqn{\min \{pw_{i,j,k + na}, w_{i,jn}, \min \{cw_{i,j,k} > pw_{i,j,k}\}\}}
 #' where \eqn{w_{i,jn}} is the number of words in the sentence.
 #'
 #' The core value in the cluster, the polarized word is acted uppon by valence
-#' shifters. Amplifiers increase the polarity by 1.8 (.8 is the default weight
+#' shifters. Amplifiers (intensifiers) increase the polarity by 1.8 (.8 is the default weight
 #' (\eqn{z})).  Amplifiers (\eqn{w_{i,j,k}^{a}}) become de-amplifiers if the context
 #' cluster contains an odd number of negators (\eqn{w_{i,j,k}^{n}}).  De-amplifiers
-#' work to decrease the polarity.  Negation (\eqn{w_{i,j,k}^{n}}) acts on
+#' (downtoners) work to decrease the polarity.  Negation (\eqn{w_{i,j,k}^{n}}) acts on
 #' amplifiers/de-amplifiers as discussed but also flip the sign of the polarized
 #' word.  Negation is determined by raising -1 to the power of the number of
 #' negators (\eqn{w_{i,j,k}^{n}}) + 2.  Simply, this is a result of a belief that two
@@ -184,16 +188,28 @@
 #' \deqn{w_{neg}= \left(\sum{w_{i,j,k}^{n}}\right) \bmod {2}}
 #'
 #' @importFrom data.table := .N
+#' @importFrom lexicon hash_sentiment_jockers
 #' @examples
 #' mytext <- c(
 #'    'do you like it?  But I hate really bad dogs',
 #'    'I am the best friend.',
-#'    'Do you really like it?  I\'m not a fan'
+#'    "Do you really like it?  I'm not a fan"
 #' )
+#' 
+#' ## works on a character vector but not the preferred method avoiding the 
+#' ## repeated cost of doing sentence boundary disambiguation every time 
+#' ## `sentiment` is run.  For small batches the loss is minimal.
+#' \dontrun{
+#' sentiment(mytext)
+#' }
+#' 
+#' ## preferred method avoiding paying the cost 
+#' mytext <- get_sentences(mytext)
 #' sentiment(mytext)
 #' sentiment(mytext, question.weight = 0)
 #'
-#' (sam <- sentiment(gsub("Sam-I-am", "Sam I am", sam_i_am)))
+#' sam_dat <- get_sentences(gsub("Sam-I-am", "Sam I am", sam_i_am))
+#' (sam <- sentiment(sam_dat))
 #' plot(sam)
 #' plot(sam, scale_range = TRUE, low_pass_size = 5)
 #' plot(sam, scale_range = TRUE, low_pass_size = 10)
@@ -202,10 +218,47 @@
 #' plot(sam, transformation.function = syuzhet::get_transformed_values,  
 #'     scale_range = TRUE, low_pass_size = 5)
 #' 
-#' y <- "He was not the sort of man that one would describe as especially handsome."
+#' y <- get_sentences(
+#'     "He was not the sort of man that one would describe as especially handsome."
+#' )
 #' sentiment(y)
 #' sentiment(y, n.before=Inf)
+#' 
+#' dat <- data.frame(
+#'     w = c('Person 1', 'Person 2'),
+#'     x = c(paste0(
+#'         "Mr. Brown is nasty! He says hello. i give him rage.  i will ",
+#'         "go at 5 p. m. eastern time.  Angry thought in between!go there"
+#'     ), "One more thought for the road! I am going now.  Good day and good riddance."),
+#'     y = state.name[c(32, 38)], 
+#'     z = c(.456, .124),
+#'     stringsAsFactors = FALSE
+#' )
+#' sentiment(get_sentences(dat$x))
+#' sentiment(get_sentences(dat))
+#' 
+#' \dontrun{
+#' ## tidy approach
+#' library(dplyr)
+#' library(magrittr)
+#' 
+#' cannon_reviews %>%
+#'    mutate(review_split = get_sentences(review)) %$%
+#'    sentiment(review_split)
+#' }
 sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+    valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
+    amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
+    adversative.weight = .85, missing_value = 0, ...){
+    
+    UseMethod('sentiment')
+    
+}
+
+
+#' @export
+#' @method sentiment get_sentences_character
+sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
     adversative.weight = .85, missing_value = 0, ...){
@@ -225,10 +278,11 @@ sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
     words <- c(posneg, valence_shifters_dt[[1]])
     space_words <-  words[grep("\\s", words)]
 
-    # break rows into sentences, count words
+    # break rows into count words
     # space fill (~~), break into words
-    sents <- get_sents(gsub("(\\s*)([;:,]+)", " \\2", text.var))
+    sents <- text.var
     sent_dat <- make_sentence_df2(sents)
+
     sent_dat[, 'words' := list(make_words(space_fill(sentences, space_words), hyphen = hyphen))]
 
     # make sentence id for each row id
@@ -329,6 +383,43 @@ sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
      out[]
 }
 
+#' @export
+#' @method sentiment character
+sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+    valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
+    amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
+    adversative.weight = .85, missing_value = 0, ...){
+
+    split_warn(text.var, 'sentiment', ...)
+    
+    sents <- get_sentences(text.var)
+    sentiment(sents, polarity_dt = polarity_dt, 
+        valence_shifters_dt = valence_shifters_dt, hyphen = hyphen,
+        amplifier.weight = amplifier.weight, n.before = n.before, 
+        n.after = n.after, question.weight = question.weight,
+        adversative.weight = adversative.weight, missing_value = missing_value, ...)
+  
+}
+
+#' @export
+#' @method sentiment get_sentences_data_frame
+sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+    valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
+    amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
+    adversative.weight = .85, missing_value = 0, ...){
+ 
+    x <- make_class(text.var[[attributes(text.var)[['text.var']]]], "get_sentences", "get_sentences_character")
+
+    sent_out <- sentiment(x, polarity_dt = polarity_dt, 
+            valence_shifters_dt = valence_shifters_dt, hyphen = hyphen,
+            amplifier.weight = amplifier.weight, n.before = n.before, 
+            n.after = n.after, question.weight = question.weight,
+            adversative.weight = adversative.weight, missing_value = missing_value, ...)
+    
+    cbind(text.var, sent_out[, c('word_count',  'sentiment')])
+  
+}
+
 replace_na <- function(x, y = 0) {x[is.na(x)] <- y; x}
 
 #' Plots a sentiment object
@@ -343,6 +434,7 @@ replace_na <- function(x, y = 0) {x[is.na(x)] <- y; x}
 #' sentiment across the duration of the text.
 #' @return Returns a \pkg{ggplot2} object.
 #' @method plot sentiment
+#' @importFrom syuzhet get_dct_transform
 #' @export
 plot.sentiment <- function(x, transformation.function = syuzhet::get_dct_transform, ...){
 
