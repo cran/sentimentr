@@ -17,6 +17,59 @@ And constructed with the following guidelines:
 * Bug fixes and misc changes bumps the patch
 
 
+
+sentimentr 2.1.0 - 2.2.3
+----------------------------------------------------------------
+
+BUG FIXES
+
+* `sentiment` contained a bug that caused sentences with multiple polarized 
+  words and comma/semicolon/colon breaks to inappropriate replicate rows too many
+  times (a recycling error).  This in turn caused the same polarized word to be
+  counted multiple times resulting in very extreme polarity values.  This was 
+  spotted by Lilly Wang.
+  
+* `validate_sentiment` contained an error in the documentation; the predicted
+  and actual data were put into the wrong arguments for the first example.
+
+NEW FEATURES
+
+* The default sentiment sentiment lookup table used within **sentimentr** is now
+  `lexicon::hash_sentiment_jockers_rinker`, a combined and augmented version of
+  `lexicon::hash_sentiment_jockers` (Jockers, 2017) & Rinker's augmented 
+  `lexicon::hash_sentiment_huliu` (Hu & Liu, 2004) sentiment lookup tables.
+
+* Five new sentiment scored data sets added: `kaggle_movie_reviews`, `nyt_articles`
+  `hotel_reviews`, `crowdflower_self_driving_cars`, `crowdflower_products`,
+  `crowdflower_deflategate`, `crowdflower_weather`, & `course_evaluations` for 
+  testing nd exploration.
+
+*  `replace_emoji` and `replace_emoji_identifier` rexported from the **textclean**
+  package for replacing emojis with word equivalents or an identifier token
+  that can be detected by the `lexicon::hash_sentiment_emoji` polarity table 
+  within the `sentiment` family of functions.
+  
+MINOR FEATURES
+
+* `sentiment` picks up the `neutral.nonverb.like` argument.  This allows the
+  user to treat specific non-verb uses of the word 'like' as neutral since 'like' 
+  as a verb is usually when the word is polarized.
+  
+* `combine_data` added to easily combine trusted **sentimentr** sentiment 
+  scored data sets.
+
+CHANGES
+
+* The sentiment data sets have been reformatted to conform to one another.  This
+  means columns have been renamed, ratings have been rescales to be zero as neutral,
+  and columns other than `sentiment` score and `text` have been removed.  This
+  makes it easier to compare and combine data sets.
+
+* `update_key` now allows a **data.table** object for `x` meaning **lexicon**
+  `hash_sentiment_xxx` polarity tables can be combined.  This is particularly 
+  useful for combining `hash_sentiment_emojis` with other polarity tables.
+
+
 sentimentr 2.0.1
 ----------------------------------------------------------------
 

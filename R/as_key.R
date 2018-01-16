@@ -170,6 +170,8 @@ update_key <- function(key, drop = NULL, x = NULL,
 
     stopifnot(is_key(key, sentiment = sentiment))
 
+    if (!is.null(x)) x <- as.data.frame(x, stringsAsFactors = FALSE)
+    
     if (any(grepl("[A-Z]", x[[1]]))) {
         culprits2 <- grep("[A-Z]", x[[1]], value=TRUE)
         culprits2 <- paste(paste0("   * ", culprits2), collapse = "\n")
@@ -217,7 +219,7 @@ update_polarity_table <- update_key
 #' @export
 #' @rdname as_key
 update_valence_shifter_table <- function(key, drop = NULL, x = NULL,
-    comparison = lexicon::hash_sentiment_jockers, sentiment = FALSE, ...){
+    comparison = lexicon::hash_sentiment_jockers_rinker, sentiment = FALSE, ...){
 
     update_key(key = key, drop = drop, x = x, comparison = comparison, sentiment = sentiment, ...)
 }

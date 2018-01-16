@@ -104,10 +104,16 @@ count_words <- function(x){
     stringi::stri_count_words(x)
 }
 
+# make_words <- function(x, hyphen = ""){ #retired 2017-12-10 because split on  single space and any [:;,] even 
+#     if (hyphen != "") x <- gsub("-", hyphen, x)
+#     lapply(stringi::stri_split_regex(gsub("^\\s+|\\s+$", "", x), "[[:space:]]|(?=[,;:])"), function(y) gsub('~{2,}', ' ', y))
+# }
+
 make_words <- function(x, hyphen = ""){
-	  if (hyphen != "") x <- gsub("-", hyphen, x)
-    lapply(stringi::stri_split_regex(gsub("^\\s+|\\s+$", "", x), "[[:space:]]|(?=[,;:])"), function(y) gsub('~{2,}', ' ', y))
+    if (hyphen != "") x <- gsub("-", hyphen, x)
+    lapply(stringi::stri_split_regex(gsub('([^[[:space:]]])([,;:][[:space:]])', '\\1 \\2', gsub("^\\s+|\\s+$", "", x)), "[[:space:]]+"), function(y) gsub('~{2,}', ' ', y))
 }
+
 
 ## count_row_length <- function(x){
 ##     x <- stringi::stri_count_words(x)
@@ -156,7 +162,7 @@ make_sentence_df2 <- function(sents){
     indx <- wc <- NULL
 
     ids <- add_row_id(sents)
-    text.var <- gsub("[^a-z',;: ]|\\d:\\d|\\d ", "", 
+    text.var <- gsub("[^a-z',;: ]|\\d:\\d|\\d ", " ", 
         stringi::stri_trans_tolower(gsub("(\\s*)([;:,]+)", " \\2", unlist(sents)))
     )
     dat <- data.frame(
@@ -195,8 +201,8 @@ space_fill <- function(x, doubles){
 
 }
 
-
 comma_reducer <- function(wrds, cl, pl, len, nb, na){
+
 	Map(function(wrds2, cl2, pl2, len2){
 
 	    ## just retun the words if no pol location
@@ -219,10 +225,15 @@ comma_reducer <- function(wrds, cl, pl, len, nb, na){
         ind <- lower:upper
 
 	    ind <- ind[!ind %in% pl2]
-	    if(identical(integer(0), ind)) return(c("", wrds2[-pl2]))
+	    
+	    if(identical(integer(0), ind)) return(c('')) #return(c("", wrds2[-pl2])) ## replaced return on 1/12/2018 bc https://github.com/trinker/sentimentr/issues/72 not sure why words were return b4
+	    
         wrds2[ind]
+        
 	}, wrds, cl, pl, len)
 }
+
+
 
 
 rm_na <- function(x) {

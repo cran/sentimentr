@@ -13,9 +13,20 @@
 #' \code{sentiment} is run.
 #' @param polarity_dt A \pkg{data.table} of positive/negative words and
 #' weights with x and y as column names.  The \pkg{lexicon} package has 4 
-#' dictionaries that can be used here: \code{lexicon::hash_sentiment_huliu}, 
-#' \code{lexicon::hash_sentiment_jockers}, \code{lexicon::hash_sentiment_nrc}, 
-#' and \code{lexicon::hash_sentiment_sentiword}.  Additionally, the 
+#' dictionaries that can be used here: 
+#' \itemize{
+#'   \item \code{lexicon::hash_sentiment_jockers_rinker}
+#'   \item \code{lexicon::hash_sentiment_jockers}
+#'   \item \code{lexicon::hash_sentiment_huliu}
+#'   \item \code{lexicon::hash_sentiment_inquirer}
+#'   \item \code{lexicon::hash_sentiment_loughran_mcdonald}
+#'   \item \code{lexicon::hash_sentiment_nrc}
+#'   \item \code{lexicon::hash_sentiment_senticnet}
+#'   \item \code{lexicon::hash_sentiment_sentiword}
+#'   \item \code{lexicon::hash_sentiment_vadar}
+#'   \item \code{lexicon::hash_sentiment_emoji}
+#' }
+#' Additionally, the 
 #' \code{as_key} function can be used to make a sentiment frame suitable for
 #' \code{polarity_dt}.  This takes a 2 column data.frame with the first column
 #' being words and the second column being polarity values.  Note that as of 
@@ -28,7 +39,8 @@
 #' conjunctions (4) with x and y as column names.
 #' @param hyphen The character string to replace hyphens with.  Default replaces
 #' with nothing so 'sugar-free' becomes 'sugarfree'.  Setting \code{hyphen = " "}
-#' would result in a space between words (e.g., 'sugar free').
+#' would result in a space between words (e.g., 'sugar free').  Typically use 
+#' either " " or default "".
 #' @param amplifier.weight The weight to apply to amplifiers/de-amplifiers 
 #' [intensifiers/downtoners] (values from 0 to 1).  This value will multiply the 
 #' polarized terms by 1 + this value.
@@ -41,7 +53,11 @@
 #' @param question.weight The weighting of questions (values from 0 to 1).
 #' Default is 1.  A 0 corresponds with the belief that questions (pure questions)
 #' are not polarized.  A weight may be applied based on the evidence that the
-#' questions function with polarized sentiment.
+#' questions function with polarized sentiment.  In an opinion tasks such as a
+#' course evalaution the questions are more likely polarized, not designed to
+#' gain information.  On the other hand, in a setting with more natural dialogue,
+#' the question is less likely polarized and is likely to function as a means
+#' to gather information.
 #' @param adversative.weight The weight to give to adversative conjunctions or 
 #' contrasting conjunctions (e.g., "but") that overrule the previous clause 
 #' (Halliday & Hasan, 2013).  Weighting a contrasting statement stems from the 
@@ -58,6 +74,20 @@
 #' These are added to the deamplifier and amplifier weights and thus the down 
 #' weight is constrained to -1 as the lower bound.  Set to zero to remove 
 #' adversative conjunction weighting.
+#' @param neutral.nonverb.like logical.  If \code{TRUE}, and 'like' is found
+#' in the \code{polarity_dt}, when the word 'like' is preceded by one of the 
+#' following linking verbs: \code{"'s"}, \code{"was"}, \code{"is"}, \code{"has"}, 
+#' \code{"am"}, \code{"are"}, \code{"'re"}, \code{"had"}, or \code{"been"} it is 
+#' neutralized as this non-verb form of like is not likely polarized.  This is a 
+#' poor man's part of speech tagger, maintaining the balance between speed and 
+#' accuracy.  The word 'like', as a verb, tends to be polarized and is usually 
+#' preceded by a noun or pronoun, not one of the linking verbs above.  This 
+#' hyper parameter doesn't always yield improved results depending on the context 
+#' of where the text data comes from.  For example, it is likely to be more 
+#' useful in literary works, where like is often used in non-verb form, than 
+#' product comments.  Use of this parameter will add compute time, this must be 
+#' weighed against the need for accuracy and the likeliness that more accurate 
+#' results will come from setting this argument to \code{TRUE}.
 #' @param missing_value A value to replace \code{NA}/\code{NaN} with.  Use
 #' \code{NULL} to retain missing values.
 #' @param \ldots Ignored.
@@ -84,16 +114,17 @@
 #' @family sentiment functions
 #' @seealso \url{https://github.com/trestletech/Sermon-Sentiment-Analysis}
 #' @note The polarity score is dependent upon the polarity dictionary used.
-#' This function defaults to a slightly modified vaersion of the polarity word  
-#' dictionary used by Jockers (2017), however, this may not be appropriate, for 
+#' This function defaults to a combined and augmented version of Jocker's (2017) 
+#' [originally exported by the \pkg{syuzhet} package] & Rinker's augmented Hu & Liu (2004) 
+#' dictionaries in the \pkg{lexicon} package, however, this may not be appropriate, for 
 #' example, in the context of children in a classroom.  The user may (is 
 #' encouraged) to provide/augment the dictionary (see the \code{as_key} 
 #' function).  For instance the word "sick" in a high school setting may mean 
 #' that something is good, whereas "sick" used by a typical adult indicates 
 #' something is not right or negative connotation (\strong{deixis}).
 #' @details The equation used by the algorithm to assign value to polarity of
-#' each sentence fist utilizes the sentiment dictionary (e.g., Jockers, 2017) 
-#' to tag polarized words.  Each paragraph
+#' each sentence fist utilizes the sentiment dictionary to tag polarized words.  
+#' Each paragraph
 #' (\eqn{p_i = \{s_1, s_2, ..., s_n\}}{p_i = \{s_1, s_2, ... s_n\}}) composed of
 #' sentences, is broken into element sentences
 #' (\eqn{s_i,j = \{w_1, w_2, ..., w_n\}}{s_i,j = \{w_1, w_2, ... w_n\}}) where \eqn{w}
@@ -139,7 +170,7 @@
 #' constrained to \eqn{\min \{pw_{i,j,k + na}, w_{i,jn}, \min \{cw_{i,j,k} > pw_{i,j,k}\}\}}
 #' where \eqn{w_{i,jn}} is the number of words in the sentence.
 #'
-#' The core value in the cluster, the polarized word is acted uppon by valence
+#' The core value in the cluster, the polarized word is acted upon by valence
 #' shifters. Amplifiers (intensifiers) increase the polarity by 1.8 (.8 is the default weight
 #' (\eqn{z})).  Amplifiers (\eqn{w_{i,j,k}^{a}}) become de-amplifiers if the context
 #' cluster contains an odd number of negators (\eqn{w_{i,j,k}^{n}}).  De-amplifiers
@@ -187,13 +218,14 @@
 #'
 #' \deqn{w_{neg}= \left(\sum{w_{i,j,k}^{n}}\right) \bmod {2}}
 #'
-#' @importFrom data.table := .N
-#' @importFrom lexicon hash_sentiment_jockers
+#' @importFrom data.table := .N .SD
+## @importFrom lexicon hash_sentiment_jockers_rinker
 #' @examples
 #' mytext <- c(
 #'    'do you like it?  But I hate really bad dogs',
 #'    'I am the best friend.',
-#'    "Do you really like it?  I'm not a fan"
+#'    "Do you really like it?  I'm not a fan",
+#'    "It's like a tree."
 #' )
 #' 
 #' ## works on a character vector but not the preferred method avoiding the 
@@ -243,26 +275,55 @@
 #' library(magrittr)
 #' 
 #' cannon_reviews %>%
-#'    mutate(review_split = get_sentences(review)) %$%
+#'    mutate(review_split = get_sentences(text)) %$%
 #'    sentiment(review_split)
 #' }
-sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+#' 
+#' ## Emojis
+#' \dontrun{
+#' ## Load R twitter data
+#' x <- read.delim(system.file("docs/r_tweets.txt", package = "textclean"), 
+#'     stringsAsFactors = FALSE)
+#' 
+#' x
+#' 
+#' library(dplyr); library(magrittr)
+#' 
+#' ## There are 2 approaches
+#' ## Approach 1: Replace with words
+#' x %>%
+#'     mutate(Tweet = replace_emoji(Tweet)) %$%
+#'     sentiment(Tweet)
+#' 
+#' ## Approach 2: Replace with identifier token
+#' combined_emoji <- update_polarity_table(
+#'     lexicon::hash_sentiment_jockers_rinker,
+#'     x = lexicon::hash_sentiment_emojis
+#' )
+#' 
+#' x %>%
+#'     mutate(Tweet = replace_emoji_identifier(Tweet)) %$%
+#'     sentiment(Tweet, polarity_dt = combined_emoji)
+#' 
+#' }
+sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .85, missing_value = 0, ...){
+    adversative.weight = .85, neutral.nonverb.like = FALSE, missing_value = 0, ...){
     
     UseMethod('sentiment')
     
 }
 
 
+
 #' @export
 #' @method sentiment get_sentences_character
-sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .85, missing_value = 0, ...){
-
+    adversative.weight = .85, neutral.nonverb.like = FALSE, missing_value = 0, ...){
+    
     sentences <- id2 <- pol_loc <- comma_loc <- P <- non_pol <- lens <-
             cluster_tag <- w_neg <- neg <- A <- a <- D <- d <- wc <- id <-
             T_sum <- N <- . <- b <- before <- NULL
@@ -278,11 +339,23 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
     words <- c(posneg, valence_shifters_dt[[1]])
     space_words <-  words[grep("\\s", words)]
 
-    # break rows into count words
-    # space fill (~~), break into words
     sents <- text.var
+    
+    # break rows into count words
     sent_dat <- make_sentence_df2(sents)
 
+    ## replace like when preposition
+    if (neutral.nonverb.like && 'like' %in% polarity_dt[[1]]) {
+        sent_dat[, 'sentences' := stringi::stri_replace_all_regex(
+                sentences,
+                like_preverbs_regex,
+                '$1 $1$3',
+                opts_regex = stringi::stri_opts_regex(case_insensitive=TRUE)
+            )
+        ][]
+    }
+    
+    # space fill (~~), break into words    
     sent_dat[, 'words' := list(make_words(space_fill(sentences, space_words), hyphen = hyphen))]
 
     # make sentence id for each row id
@@ -292,28 +365,44 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
     word_dat <- sent_dat[, .(words = unlist(words)), by = c('id', 'id2')]
 
     ## 1. add polarity word potential locations (seq along) and the
-    ##    value for polarized word
+    ##    value for polarized word and polarity value = P
     ## 2. add comma locations
     word_dat[, pol_loc:=seq_len(.N), by=c('id', 'id2')]
     word_dat[, comma_loc:=pol_loc]
     word_dat[, "P"] <- polarity_dt[word_dat[["words"]]][[2]]
     word_dat[, pol_loc:=ifelse(is.na(P), NA, pol_loc)]
-    word_dat[, comma_loc:=ifelse(words %in% c(";", ":", ","), comma_loc, NA)]
+    word_dat[, comma_loc:=ifelse(words %in% c(';', ':',  ','), comma_loc, NA)]
 
     ## Get position of polarized word (hits = pol_loc)
     ## Get length of words vect
-    word_dat <- word_dat[, .(words=list(words), pol_loc=list(rm_na(pol_loc)),
-    	comma_loc=list(rm_na(comma_loc)), P= list(rm_na(P))), by = c('id', 'id2')]
+    word_dat <- word_dat[, .(words=list(words), lens = sum(!is.na(pol_loc)), pol_loc=list(rm_na(pol_loc)),
+    	comma_loc=list(rm_na(comma_loc)), P= list(rm_na(P))), by = c('id', 'id2')][, 
+    	    lens := ifelse(lens == 0, 1, lens)][]
 
-    ## stretch by prior polarized word hits
-    word_dat <- suppressWarnings(word_dat[, .(words, pol_loc = unlist(pol_loc),
-    	comma_loc = unlist(comma_loc), P = unlist(P),
-    	lens = sapply(words, length)), by = c('id', 'id2')])
+    ## Unlist the pol_loc and P repeating everything else
+    # word_dat <- cbind(
+    #     word_dat[rep(seq_len(nrow(word_dat)), lens), .SD, .SD = c('id', 'id2', 'words', 'comma_loc')],
+    #     word_dat[, .(pol_loc = unlist(pol_loc),
+    # 	    P = unlist(P), lens = sapply(words, length)), by = c('id', 'id2')][, id := NULL][, id2 := NULL]
+    # )
 
-    ## Grab the cluster of non-polarity words (n.before/n.after taking into account [,;:]
+    word_dat <- word_dat[, .(words, comma_loc, pol_loc = unlist(pol_loc),
+	    P = unlist(P), lens = sapply(words, length)), by = c('id', 'id2')]
+
+    ## Grab the cluster of non-polarity words (n.before/n.after taking into account comma locs)
     cols2 <- c('id', 'id2', 'pol_loc', 'P')
     word_dat <- word_dat[, non_pol :=  list(comma_reducer(words, comma_loc, pol_loc, lens, n.before, n.after))][,
     	list(words, non_pol, lens = sapply(words, length)), by = cols2]
+     
+    # ## stretch by prior polarized word hits ## removed 2017-12-06 [improper recycling]
+    # word_dat <- suppressWarnings(word_dat[, .(words, pol_loc = unlist(pol_loc),
+    # 	comma_loc = unlist(comma_loc), P = unlist(P),
+    # 	lens = sapply(words, length)), by = c('id', 'id2')])
+    # 
+    # ## Grab the cluster of non-polarity words (n.before/n.after taking into account comma locs
+    # cols2 <- c('id', 'id2', 'pol_loc', 'P')
+    # word_dat <- word_dat[, non_pol :=  list(comma_reducer(words, comma_loc, pol_loc, lens, n.before, n.after))][,
+    # 	list(words, non_pol, lens = sapply(words, length)), by = cols2]
 
     ## save just polarized data for later merge
     pol_dat <- word_dat[, c("id", "id2", "pol_loc", "P"), with=FALSE]
@@ -383,12 +472,16 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
      out[]
 }
 
+like_preverbs <- c("'s", 'was', 'is', 'has', 'am', 'are', "'re", 'had', 'been')
+like_preverbs_regex <- paste0('\\b(', paste(like_preverbs, collapse = '|'), ')(\\s+)(like\\b)')
+
+
 #' @export
 #' @method sentiment character
-sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .85, missing_value = 0, ...){
+    adversative.weight = .85, neutral.nonverb.like = FALSE, missing_value = 0, ...){
 
     split_warn(text.var, 'sentiment', ...)
     
@@ -397,16 +490,17 @@ sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_
         valence_shifters_dt = valence_shifters_dt, hyphen = hyphen,
         amplifier.weight = amplifier.weight, n.before = n.before, 
         n.after = n.after, question.weight = question.weight,
-        adversative.weight = adversative.weight, missing_value = missing_value, ...)
+        adversative.weight = adversative.weight, missing_value = missing_value, 
+        neutral.nonverb.like = neutral.nonverb.like, c(';', ':',  ','), ...)
   
 }
 
 #' @export
 #' @method sentiment get_sentences_data_frame
-sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .85, missing_value = 0, ...){
+    adversative.weight = .85, neutral.nonverb.like = FALSE, missing_value = 0, ...){
  
     x <- make_class(text.var[[attributes(text.var)[['text.var']]]], "get_sentences", "get_sentences_character")
 
@@ -414,7 +508,8 @@ sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::
             valence_shifters_dt = valence_shifters_dt, hyphen = hyphen,
             amplifier.weight = amplifier.weight, n.before = n.before, 
             n.after = n.after, question.weight = question.weight,
-            adversative.weight = adversative.weight, missing_value = missing_value, ...)
+            adversative.weight = adversative.weight, missing_value = missing_value, 
+            neutral.nonverb.like = neutral.nonverb.like, ...)
     
     cbind(text.var, sent_out[, c('word_count',  'sentiment')])
   

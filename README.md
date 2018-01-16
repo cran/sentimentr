@@ -209,12 +209,20 @@ with several helper functions summarized in the table below:
 <td>Regex based string to sentence parser (or get sentences from <code>sentiment</code>/<code>sentiment_by</code>)</td>
 </tr>
 <tr class="odd">
+<td><code>replace_emoji</code></td>
+<td>repalcement</td>
+</tr>
+<tr class="even">
 <td><code>replace_emoticon</code></td>
 <td>Replace emoticons with word equivalent</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>replace_grade</code></td>
 <td>Replace grades (e.g., &quot;A+&quot;) with word equivalent</td>
+</tr>
+<tr class="even">
+<td><code>replace_internet_slang</code></td>
+<td>replacment</td>
 </tr>
 <tr class="odd">
 <td><code>replace_rating</code></td>
@@ -258,7 +266,7 @@ The equation below describes the augmented dictionary method of
 **sentimentr** that may give better results than a simple lookup
 dictionary approach that does not consider valence shifters. The
 equation used by the algorithm to assign value to polarity of each
-sentence fist utilizes the a sentiment dictionary (e.g., Jockers,
+sentence fist utilizes a sentiment dictionary (e.g., Jockers,
 [(2017)](https://github.com/mjockers/syuzhet)) to tag polarized words.
 Each paragraph
 (*p*<sub>*i*</sub> = {*s*<sub>1</sub>, *s*<sub>2</sub>, ..., *s*<sub>*n*</sub>})
@@ -277,12 +285,12 @@ For example it may be a cell level response in a questionnaire composed
 of sentences.
 
 The words in each sentence (*w*<sub>*i*, *j*, *k*</sub>) are searched
-and compared to a dictionary of polarized words (e.g., a slightly
-modified version of Jocker's (2017) dictionary in the
-[**lexicon**](https://cran.r-project.org/package=lexicon) package
-originally exported by the
-[**syuzhet**](https://github.com/mjockers/syuzhet) package). Positive
-(*w*<sub>*i*, *j*, *k*</sub><sup>+</sup>) and negative
+and compared to a dictionary of polarized words (e.g., a combined and
+augmented version of Jocker's (2017) \[originally exported by the
+[**syuzhet**](https://github.com/mjockers/syuzhet) package\] & Rinker's
+augmented Hu & Liu (2004) dictionaries in the
+[**lexicon**](https://cran.r-project.org/package=lexicon) package).
+Positive (*w*<sub>*i*, *j*, *k*</sub><sup>+</sup>) and negative
 (*w*<sub>*i*, *j*, *k*</sub><sup>−</sup>) words are tagged with a +1 and
 −1 respectively (or other positive/negative weighting if the user
 provides the sentiment dictionary). I will denote polarized words as
@@ -461,16 +469,16 @@ argument.
     ))
 
     ##        person   time word_count        sd ave_sentiment
-    ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
-    ##  2:     OBAMA time 2       7476 0.2399589    0.11663216
-    ##  3:     OBAMA time 3       7241 0.2614870    0.11842952
-    ##  4:    ROMNEY time 1       4085 0.2505313    0.12462353
-    ##  5:    ROMNEY time 2       7534 0.2382667    0.08540709
-    ##  6:    ROMNEY time 3       8302 0.2846332    0.10652350
-    ##  7:   CROWLEY time 2       1672 0.1878174    0.17977897
-    ##  8:    LEHRER time 1        765 0.2847680    0.18338771
-    ##  9:  QUESTION time 2        583 0.2076347    0.06625726
-    ## 10: SCHIEFFER time 3       1445 0.2471048    0.08780297
+    ##  1:     OBAMA time 1       3599 0.2560745    0.12127513
+    ##  2:     OBAMA time 2       7477 0.2537932    0.11701963
+    ##  3:     OBAMA time 3       7243 0.2464540    0.08144186
+    ##  4:    ROMNEY time 1       4085 0.2536124    0.10468550
+    ##  5:    ROMNEY time 2       7536 0.2203095    0.08949117
+    ##  6:    ROMNEY time 3       8303 0.2646393    0.09666790
+    ##  7:   CROWLEY time 2       1672 0.2190129    0.19649118
+    ##  8:    LEHRER time 1        765 0.2984782    0.15494585
+    ##  9:  QUESTION time 2        583 0.1753812    0.03156748
+    ## 10: SCHIEFFER time 3       1445 0.2345879    0.08864622
 
 Tidy Approach
 -------------
@@ -485,16 +493,16 @@ Or if you prefer a more tidy approach:
         sentiment_by(dialogue_split, list(person, time))
 
     ##        person   time word_count        sd ave_sentiment
-    ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
-    ##  2:     OBAMA time 2       7476 0.2399589    0.11663216
-    ##  3:     OBAMA time 3       7241 0.2614870    0.11842952
-    ##  4:    ROMNEY time 1       4085 0.2505313    0.12462353
-    ##  5:    ROMNEY time 2       7534 0.2382667    0.08540709
-    ##  6:    ROMNEY time 3       8302 0.2846332    0.10652350
-    ##  7:   CROWLEY time 2       1672 0.1878174    0.17977897
-    ##  8:    LEHRER time 1        765 0.2847680    0.18338771
-    ##  9:  QUESTION time 2        583 0.2076347    0.06625726
-    ## 10: SCHIEFFER time 3       1445 0.2471048    0.08780297
+    ##  1:     OBAMA time 1       3599 0.2560745    0.12127513
+    ##  2:     OBAMA time 2       7477 0.2537932    0.11701963
+    ##  3:     OBAMA time 3       7243 0.2464540    0.08144186
+    ##  4:    ROMNEY time 1       4085 0.2536124    0.10468550
+    ##  5:    ROMNEY time 2       7536 0.2203095    0.08949117
+    ##  6:    ROMNEY time 3       8303 0.2646393    0.09666790
+    ##  7:   CROWLEY time 2       1672 0.2190129    0.19649118
+    ##  8:    LEHRER time 1        765 0.2984782    0.15494585
+    ##  9:  QUESTION time 2        583 0.1753812    0.03156748
+    ## 10: SCHIEFFER time 3       1445 0.2345879    0.08864622
 
 Note that you can skip the `dplyr::mutate` step by using `get_sentences`
 on a `data.frame` as seen below:
@@ -504,16 +512,16 @@ on a `data.frame` as seen below:
         sentiment_by(dialogue, list(person, time))
 
     ##        person   time word_count        sd ave_sentiment
-    ##  1:     OBAMA time 1       3598 0.3015097    0.16673169
-    ##  2:     OBAMA time 2       7476 0.2399589    0.11663216
-    ##  3:     OBAMA time 3       7241 0.2614870    0.11842952
-    ##  4:    ROMNEY time 1       4085 0.2505313    0.12462353
-    ##  5:    ROMNEY time 2       7534 0.2382667    0.08540709
-    ##  6:    ROMNEY time 3       8302 0.2846332    0.10652350
-    ##  7:   CROWLEY time 2       1672 0.1878174    0.17977897
-    ##  8:    LEHRER time 1        765 0.2847680    0.18338771
-    ##  9:  QUESTION time 2        583 0.2076347    0.06625726
-    ## 10: SCHIEFFER time 3       1445 0.2471048    0.08780297
+    ##  1:     OBAMA time 1       3599 0.2560745    0.12127513
+    ##  2:     OBAMA time 2       7477 0.2537932    0.11701963
+    ##  3:     OBAMA time 3       7243 0.2464540    0.08144186
+    ##  4:    ROMNEY time 1       4085 0.2536124    0.10468550
+    ##  5:    ROMNEY time 2       7536 0.2203095    0.08949117
+    ##  6:    ROMNEY time 3       8303 0.2646393    0.09666790
+    ##  7:   CROWLEY time 2       1672 0.2190129    0.19649118
+    ##  8:    LEHRER time 1        765 0.2984782    0.15494585
+    ##  9:  QUESTION time 2        583 0.1753812    0.03156748
+    ## 10: SCHIEFFER time 3       1445 0.2345879    0.08864622
 
 Plotting
 --------
@@ -543,7 +551,7 @@ Making and Updating Dictionaries
 It is pretty straight forward to make or update a new dictionary
 (polarity or valence shifter). To create a key from scratch the user
 needs to create a 2 column `data.frame`, with words on the left and
-values on the right (see `?lexicon::hash_sentiment_huliu` &
+values on the right (see `?lexicon::hash_sentiment_jockers_rinker` &
 `?lexicon::hash_valence_shifters` for what the values mean). Note that
 the words need to be lower cased. Here I show an example `data.frame`
 ready for key conversion:
@@ -643,11 +651,11 @@ approach as it works more reliably on my own Windows machine), the
 lookup based
 [SentimentAnalysis](https://github.com/sfeuerriegel/SentimentAnalysis)
 package, the [meanr](https://github.com/wrathematics/meanr) package
-(written in C level code), and my own algorithm with default Jockers
-(2017) polarity lexicon as well as Hu & Liu (2004) and [Baccianella,
-Esuli and Sebastiani's (2010)](http://sentiwordnet.isti.cnr.it/)
-SentiWord lexicons available from the
-[**lexicon**](https://github.com/trinker/lexicon) package.
+(written in C level code), and my own algorithm with default combined
+Jockers (2017) & Rinker's Hu & Liue (2004) polarity lexicons as well as
+Hu & Liu (2004) and [Baccianella, Esuli and Sebastiani's
+(2010)](http://sentiwordnet.isti.cnr.it/) SentiWord lexicons available
+from the [**lexicon**](https://github.com/trinker/lexicon) package.
 
     if (!require("pacman")) install.packages("pacman")
     pacman::p_load_gh("trinker/sentimentr", "trinker/stansent", "sfeuerriegel/SentimentAnalysis", "wrathematics/meanr")
@@ -666,14 +674,15 @@ SentiWord lexicons available from the
     )
 
     syuzhet <- setNames(as.data.frame(lapply(c("syuzhet", "bing", "afinn", "nrc"),
-        function(x) get_sentiment(ase, method=x))), c("syuzhet", "bing", "afinn", "nrc"))
+        function(x) get_sentiment(ase, method=x))), c("jockers", "bing", "afinn", "nrc"))
 
     SentimentAnalysis <- apply(analyzeSentiment(ase)[c('SentimentGI', 'SentimentLM', 'SentimentQDAP') ], 2, round, 2)
     colnames(SentimentAnalysis) <- gsub('^Sentiment', "SA_", colnames(SentimentAnalysis))
 
     left_just(data.frame(
         stanford = sentiment_stanford(ase)[["sentiment"]],
-        sentimentr_jockers = round(sentiment(ase, question.weight = 0)[["sentiment"]], 2),
+        sentimentr_jockers_rinker = round(sentiment(ase, question.weight = 0)[["sentiment"]], 2),
+        sentimentr_jockers = round(sentiment(ase, lexicon::hash_sentiment_jockers, question.weight = 0)[["sentiment"]], 2),    
         sentimentr_huliu = round(sentiment(ase, lexicon::hash_sentiment_huliu, question.weight = 0)[["sentiment"]], 2),    
         sentimentr_sentiword = round(sentiment(ase, lexicon::hash_sentiment_sentiword, question.weight = 0)[["sentiment"]], 2),    
         RSentiment = calculate_score(ase), 
@@ -694,36 +703,36 @@ SentiWord lexicons available from the
     [1] "Processing sentence: wait its returned"
     [1] "Processing sentence: i do not feel so bad after all"
 
-      stanford sentimentr_jockers sentimentr_huliu sentimentr_sentiword
-    1     -0.5               0.18             0.35                 0.18
-    2        1                0.6              0.8                 0.65
-    3      0.5               0.38              0.5                 0.32
-    4     -0.5                  0                0                    0
-    5     -0.5              -0.31            -0.41                -0.56
-    6     -0.5               0.04             0.06                 0.11
-    7     -0.5              -0.28            -0.38                -0.05
-    8        0              -0.14                0                -0.14
-    9     -0.5               0.28             0.38                 0.24
-      RSentiment SA_GI SA_LM SA_QDAP meanr syuzhet bing afinn nrc
-    1          1 -0.25     0   -0.25    -1    -0.5   -1    -2   0
-    2          1  0.33  0.33       0     1    0.75    1     3   1
-    3          1   0.5   0.5     0.5     1    0.75    1     3   1
-    4          0     0  0.25    0.25     1    0.75    1     3   1
-    5         -1     1     1       1     1    0.75    1     3   1
-    6          1  0.17  0.17    0.33     1    0.75    1     3   1
-    7          1   0.5   0.5     0.5     1    0.75    1     2   1
-    8         -1     0     0       0     0   -0.25    0     0  -1
-    9          0 -0.33 -0.33   -0.33    -1   -0.75   -1    -3  -1
-      sentences                                              
-    1 I haven't been sad in a long time.                     
-    2 I am extremely happy today.                            
-    3 It's a good day.                                       
-    4 But suddenly I'm only a little bit happy.              
-    5 Then I'm not happy at all.                             
-    6 In fact, I am now the least happy person on the planet.
-    7 There is no happiness left in me.                      
-    8 Wait, it's returned!                                   
-    9 I don't feel so bad after all!                         
+      stanford sentimentr_jockers_rinker sentimentr_jockers sentimentr_huliu
+    1     -0.5                      0.18               0.18             0.35
+    2        1                       0.6                0.6              0.8
+    3      0.5                      0.38               0.38              0.5
+    4     -0.5                         0                  0                0
+    5     -0.5                     -0.31              -0.31            -0.41
+    6     -0.5                      0.04               0.04             0.06
+    7     -0.5                     -0.28              -0.28            -0.38
+    8        0                     -0.14              -0.14                0
+    9     -0.5                      0.28               0.28             0.38
+      sentimentr_sentiword RSentiment SA_GI SA_LM SA_QDAP meanr jockers bing
+    1                 0.18          1 -0.25     0   -0.25    -1    -0.5   -1
+    2                 0.65          1  0.33  0.33       0     1    0.75    1
+    3                 0.32          1   0.5   0.5     0.5     1    0.75    1
+    4                    0          0     0  0.25    0.25     1    0.75    1
+    5                -0.56         -1     1     1       1     1    0.75    1
+    6                 0.11          1  0.17  0.17    0.33     1    0.75    1
+    7                -0.05          1   0.5   0.5     0.5     1    0.75    1
+    8                -0.14         -1     0     0       0     0   -0.25    0
+    9                 0.24          0 -0.33 -0.33   -0.33    -1   -0.75   -1
+      afinn nrc sentences                                              
+    1    -2   0 I haven't been sad in a long time.                     
+    2     3   1 I am extremely happy today.                            
+    3     3   1 It's a good day.                                       
+    4     3   1 But suddenly I'm only a little bit happy.              
+    5     3   1 Then I'm not happy at all.                             
+    6     3   1 In fact, I am now the least happy person on the planet.
+    7     2   1 There is no happiness left in me.                      
+    8     0  -1 Wait, it's returned!                                   
+    9    -3  -1 I don't feel so bad after all!                         
 
 Also of interest is the computational time used by each of these
 methods. To demonstrate this I increased Annie's examples by 100
@@ -737,15 +746,17 @@ see that **RSentiment** and Stanford take the longest time while
 **sentimentr** and **syuzhet** are comparable depending upon lexicon
 used. **meanr** is lighting fast. **SentimentAnalysis** is a bit slower
 than other methods but is returning 3 scores from 3 different
-dictionaries.
+dictionaries. I do not test **RSentiment** because it causes an out of
+memory error.
 
     ase_100 <- rep(ase, 100)
      
     stanford <- function() {sentiment_stanford(ase_100)}
 
-    sentimentr_jockers <- function() sentiment(ase, lexicon::hash_sentiment_jockers)
-    sentimentr_huliu <- function() sentiment(ase, lexicon::hash_sentiment_huliu)
-    sentimentr_sentiword <- function() sentiment(ase, lexicon::hash_sentiment_sentiword) 
+    sentimentr_jockers_rinker <- function() sentiment(ase_100, lexicon::hash_sentiment_jockers_rinker)
+    sentimentr_jockers <- function() sentiment(ase_100, lexicon::hash_sentiment_jockers)
+    sentimentr_huliu <- function() sentiment(ase_100, lexicon::hash_sentiment_huliu)
+    sentimentr_sentiword <- function() sentiment(ase_100, lexicon::hash_sentiment_sentiword) 
         
     RSentiment <- function() calculate_score(ase_100) 
         
@@ -753,19 +764,20 @@ dictionaries.
 
     meanr <- function() score(ase_100)
 
-    syuzhet_syuzhet <- function() get_sentiment(ase_100, method="syuzhet")
+    syuzhet_jockers <- function() get_sentiment(ase_100, method="syuzhet")
     syuzhet_binn <- function() get_sentiment(ase_100, method="bing")
     syuzhet_nrc <- function() get_sentiment(ase_100, method="nrc")
     syuzhet_afinn <- function() get_sentiment(ase_100, method="afinn")
          
     microbenchmark(
         stanford(),
+        sentimentr_jockers_rinker(),
         sentimentr_jockers(),
         sentimentr_huliu(),
         sentimentr_sentiword(),
-        RSentiment(), 
+        #RSentiment(), 
         SentimentAnalysis(),
-        syuzhet_syuzhet(),
+        syuzhet_jockers(),
         syuzhet_binn(), 
         syuzhet_nrc(),
         syuzhet_afinn(),
@@ -774,30 +786,30 @@ dictionaries.
     )
 
     Unit: microseconds
-                       expr           min            lq          mean
-                 stanford()  29295281.790  29400023.402  29734984.964
-       sentimentr_jockers()    228599.112    234849.279    241180.734
-         sentimentr_huliu()    266767.251    271540.065    280659.613
-     sentimentr_sentiword()   1015145.899   1028339.030   1050132.847
-               RSentiment() 194034175.571 201517746.098 283900476.987
-        SentimentAnalysis()   8380587.287   8703374.491   8815665.514
-          syuzhet_syuzhet()    464279.337    483483.492    492185.992
-             syuzhet_binn()    400259.877    410813.191    417908.880
-              syuzhet_nrc()    765286.614    926356.089    987816.747
-            syuzhet_afinn()    177743.019    185607.456    190791.706
-                    meanr()       978.744      1199.208      1358.363
-            median            uq           max neval
-      29504765.013  29954836.552  30404908.090     3
-        241099.445    247471.545    253843.644     3
-        276312.879    287605.794    298898.709     3
-       1041532.162   1067626.321   1093720.480     3
-     209001316.624 328833627.696 448665938.767     3
-       9026161.695   9033204.628   9040247.560     3
-        502687.646    506139.319    509590.993     3
-        421366.506    426733.381    432100.256     3
-       1087425.564   1099081.813   1110738.062     3
-        193471.893    197316.050    201160.206     3
-          1419.672      1548.173      1676.674     3
+                            expr          min           lq        mean
+                      stanford() 23834040.227 24883661.764 25640358.57
+     sentimentr_jockers_rinker()   258749.057   263011.763   266611.98
+            sentimentr_jockers()   206486.472   210409.451   213580.99
+              sentimentr_huliu()   252850.323   252984.367   269545.06
+          sentimentr_sentiword()   988829.437   999653.499  1004093.01
+             SentimentAnalysis()  4658910.895  4695431.684  4734446.13
+               syuzhet_jockers()   440518.981   447106.407   450037.37
+                  syuzhet_binn()   338523.190   359897.684   402229.21
+                   syuzhet_nrc()  2941456.875  3103821.286  3190389.21
+                 syuzhet_afinn()   140849.101   146067.149   150954.71
+                         meanr()      843.673      903.613     1626.86
+           median           uq          max neval
+     25933283.302 26543517.737 27153752.171     3
+       267274.468   270543.446   273812.423     3
+       214332.429   217128.252   219924.074     3
+       253118.410   277892.435   302666.460     3
+      1010477.561  1011724.802  1012972.042     3
+      4731952.474  4772213.754  4812475.034     3
+       453693.832   454796.560   455899.288     3
+       381272.177   434082.226   486892.274     3
+      3266185.698  3314855.383  3363525.069     3
+       151285.196   156007.508   160729.821     3
+          963.553     2018.453     3073.353     3
 
 Comparing sentimentr, syuzhet, meanr, and Stanford
 --------------------------------------------------
@@ -882,7 +894,7 @@ dictionary does well at discriminating (like Stanford's coreNLP) but
 lacks accuracy. We can deduce two things from this observation:
 
 1.  Larger dictionaries discriminate better (Sentiword \[n =
-    20,100\] vs. Hu & Lu \[n = 6,875\])
+    20,094\] vs. Hu & Lu \[n = 6,874\])
 2.  The Sentiword dictionary may have words with reversed polarities
 
 A reworking of the Sentiword dictionary may yield better results for a

@@ -4,10 +4,11 @@
 \alias{sentiment}
 \title{Polarity Score (Sentiment Analysis)}
 \usage{
-sentiment(text.var, polarity_dt = lexicon::hash_sentiment_jockers,
+sentiment(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
   valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
   amplifier.weight = 0.8, n.before = 5, n.after = 2,
-  question.weight = 1, adversative.weight = 0.85, missing_value = 0, ...)
+  question.weight = 1, adversative.weight = 0.85,
+  neutral.nonverb.like = FALSE, missing_value = 0, ...)
 }
 \arguments{
 \item{text.var}{The text variable.  Can be a \code{get_sentences} object or
@@ -17,9 +18,20 @@ the repeated cost of doing sentence boundary disambiguation every time
 
 \item{polarity_dt}{A \pkg{data.table} of positive/negative words and
 weights with x and y as column names.  The \pkg{lexicon} package has 4 
-dictionaries that can be used here: \code{lexicon::hash_sentiment_huliu}, 
-\code{lexicon::hash_sentiment_jockers}, \code{lexicon::hash_sentiment_nrc}, 
-and \code{lexicon::hash_sentiment_sentiword}.  Additionally, the 
+dictionaries that can be used here: 
+\itemize{
+  \item \code{lexicon::hash_sentiment_jockers_rinker}
+  \item \code{lexicon::hash_sentiment_jockers}
+  \item \code{lexicon::hash_sentiment_huliu}
+  \item \code{lexicon::hash_sentiment_inquirer}
+  \item \code{lexicon::hash_sentiment_loughran_mcdonald}
+  \item \code{lexicon::hash_sentiment_nrc}
+  \item \code{lexicon::hash_sentiment_senticnet}
+  \item \code{lexicon::hash_sentiment_sentiword}
+  \item \code{lexicon::hash_sentiment_vadar}
+  \item \code{lexicon::hash_sentiment_emoji}
+}
+Additionally, the 
 \code{as_key} function can be used to make a sentiment frame suitable for
 \code{polarity_dt}.  This takes a 2 column data.frame with the first column
 being words and the second column being polarity values.  Note that as of 
@@ -34,7 +46,8 @@ conjunctions (4) with x and y as column names.}
 
 \item{hyphen}{The character string to replace hyphens with.  Default replaces
 with nothing so 'sugar-free' becomes 'sugarfree'.  Setting \code{hyphen = " "}
-would result in a space between words (e.g., 'sugar free').}
+would result in a space between words (e.g., 'sugar free').  Typically use 
+either " " or default "".}
 
 \item{amplifier.weight}{The weight to apply to amplifiers/de-amplifiers 
 [intensifiers/downtoners] (values from 0 to 1).  This value will multiply the 
@@ -51,7 +64,11 @@ use \code{n.after = Inf}.}
 \item{question.weight}{The weighting of questions (values from 0 to 1).
 Default is 1.  A 0 corresponds with the belief that questions (pure questions)
 are not polarized.  A weight may be applied based on the evidence that the
-questions function with polarized sentiment.}
+questions function with polarized sentiment.  In an opinion tasks such as a
+course evalaution the questions are more likely polarized, not designed to
+gain information.  On the other hand, in a setting with more natural dialogue,
+the question is less likely polarized and is likely to function as a means
+to gather information.}
 
 \item{adversative.weight}{The weight to give to adversative conjunctions or 
 contrasting conjunctions (e.g., "but") that overrule the previous clause 
@@ -69,6 +86,21 @@ word times the weight given (\eqn{1 + N_{adversative\,conjunctions}*-1 * z_2}).
 These are added to the deamplifier and amplifier weights and thus the down 
 weight is constrained to -1 as the lower bound.  Set to zero to remove 
 adversative conjunction weighting.}
+
+\item{neutral.nonverb.like}{logical.  If \code{TRUE}, and 'like' is found
+in the \code{polarity_dt}, when the word 'like' is preceded by one of the 
+following linking verbs: \code{"'s"}, \code{"was"}, \code{"is"}, \code{"has"}, 
+\code{"am"}, \code{"are"}, \code{"'re"}, \code{"had"}, or \code{"been"} it is 
+neutralized as this non-verb form of like is not likely polarized.  This is a 
+poor man's part of speech tagger, maintaining the balance between speed and 
+accuracy.  The word 'like', as a verb, tends to be polarized and is usually 
+preceded by a noun or pronoun, not one of the linking verbs above.  This 
+hyper parameter doesn't always yield improved results depending on the context 
+of where the text data comes from.  For example, it is likely to be more 
+useful in literary works, where like is often used in non-verb form, than 
+product comments.  Use of this parameter will add compute time, this must be 
+weighed against the need for accuracy and the likeliness that more accurate 
+results will come from setting this argument to \code{TRUE}.}
 
 \item{missing_value}{A value to replace \code{NA}/\code{NaN} with.  Use
 \code{NULL} to retain missing values.}
@@ -94,8 +126,8 @@ control of the algorithm that may boost performance in different contexts.
 }
 \details{
 The equation used by the algorithm to assign value to polarity of
-each sentence fist utilizes the sentiment dictionary (e.g., Jockers, 2017) 
-to tag polarized words.  Each paragraph
+each sentence fist utilizes the sentiment dictionary to tag polarized words.  
+Each paragraph
 (\eqn{p_i = \{s_1, s_2, ..., s_n\}}{p_i = \{s_1, s_2, ... s_n\}}) composed of
 sentences, is broken into element sentences
 (\eqn{s_i,j = \{w_1, w_2, ..., w_n\}}{s_i,j = \{w_1, w_2, ... w_n\}}) where \eqn{w}
@@ -141,7 +173,7 @@ context cluster is constrained to
 constrained to \eqn{\min \{pw_{i,j,k + na}, w_{i,jn}, \min \{cw_{i,j,k} > pw_{i,j,k}\}\}}
 where \eqn{w_{i,jn}} is the number of words in the sentence.
 
-The core value in the cluster, the polarized word is acted uppon by valence
+The core value in the cluster, the polarized word is acted upon by valence
 shifters. Amplifiers (intensifiers) increase the polarity by 1.8 (.8 is the default weight
 (\eqn{z})).  Amplifiers (\eqn{w_{i,j,k}^{a}}) become de-amplifiers if the context
 cluster contains an odd number of negators (\eqn{w_{i,j,k}^{n}}).  De-amplifiers
@@ -191,8 +223,9 @@ Where:
 }
 \note{
 The polarity score is dependent upon the polarity dictionary used.
-This function defaults to a slightly modified vaersion of the polarity word  
-dictionary used by Jockers (2017), however, this may not be appropriate, for 
+This function defaults to a combined and augmented version of Jocker's (2017) 
+[originally exported by the \pkg{syuzhet} package] & Rinker's augmented Hu & Liu (2004) 
+dictionaries in the \pkg{lexicon} package, however, this may not be appropriate, for 
 example, in the context of children in a classroom.  The user may (is 
 encouraged) to provide/augment the dictionary (see the \code{as_key} 
 function).  For instance the word "sick" in a high school setting may mean 
@@ -203,7 +236,8 @@ something is not right or negative connotation (\strong{deixis}).
 mytext <- c(
    'do you like it?  But I hate really bad dogs',
    'I am the best friend.',
-   "Do you really like it?  I'm not a fan"
+   "Do you really like it?  I'm not a fan",
+   "It's like a tree."
 )
 
 ## works on a character vector but not the preferred method avoiding the 
@@ -253,8 +287,36 @@ library(dplyr)
 library(magrittr)
 
 cannon_reviews \%>\%
-   mutate(review_split = get_sentences(review)) \%$\%
+   mutate(review_split = get_sentences(text)) \%$\%
    sentiment(review_split)
+}
+
+## Emojis
+\dontrun{
+## Load R twitter data
+x <- read.delim(system.file("docs/r_tweets.txt", package = "textclean"), 
+    stringsAsFactors = FALSE)
+
+x
+
+library(dplyr); library(magrittr)
+
+## There are 2 approaches
+## Approach 1: Replace with words
+x \%>\%
+    mutate(Tweet = replace_emoji(Tweet)) \%$\%
+    sentiment(Tweet)
+
+## Approach 2: Replace with identifier token
+combined_emoji <- update_polarity_table(
+    lexicon::hash_sentiment_jockers_rinker,
+    x = lexicon::hash_sentiment_emojis
+)
+
+x \%>\%
+    mutate(Tweet = replace_emoji_identifier(Tweet)) \%$\%
+    sentiment(Tweet, polarity_dt = combined_emoji)
+
 }
 }
 \references{
