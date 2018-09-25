@@ -8,8 +8,8 @@
 \alias{is_key}
 \title{Create/Manipulate Hash Keys}
 \usage{
-as_key(x, comparison = lexicon::hash_valence_shifters, sentiment = TRUE,
-  ...)
+as_key(x, comparison = lexicon::hash_valence_shifters,
+  sentiment = TRUE, ...)
 
 update_key(key, drop = NULL, x = NULL,
   comparison = lexicon::hash_valence_shifters, sentiment = FALSE, ...)
@@ -18,8 +18,8 @@ update_polarity_table(key, drop = NULL, x = NULL,
   comparison = lexicon::hash_valence_shifters, sentiment = FALSE, ...)
 
 update_valence_shifter_table(key, drop = NULL, x = NULL,
-  comparison = lexicon::hash_sentiment_jockers_rinker, sentiment = FALSE,
-  ...)
+  comparison = lexicon::hash_sentiment_jockers_rinker,
+  sentiment = FALSE, ...)
 
 is_key(key, sentiment = TRUE)
 }
@@ -118,13 +118,6 @@ library(syuzhet)
 as_key(syuzhet:::bing)
 as_key(syuzhet:::afinn)
 as_key(syuzhet:::syuzhet_dict)
-nrc <- data.frame(
-    words = rownames(syuzhet:::nrc),
-    polarity = syuzhet:::nrc[, "positive"] - syuzhet:::nrc[, "negative"],
-    stringsAsFactors = FALSE
-)
-
-as_key(nrc[nrc[["polarity"]] != 0, ])
 
 sentiment(gsub("Sam-I-am", "Sam I am", sam_i_am), as_key(syuzhet:::bing))
 }
