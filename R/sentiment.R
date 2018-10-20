@@ -12,19 +12,20 @@
 #' the repeated cost of doing sentence boundary disambiguation every time
 #' \code{sentiment} is run.
 #' @param polarity_dt A \pkg{data.table} of positive/negative words and
-#' weights with x and y as column names.  The \pkg{lexicon} package has 4 
-#' dictionaries that can be used here: 
+#' weights with x and y as column names.  The \pkg{lexicon} package has several 
+#' dictionaries that can be used, including: 
 #' \itemize{
 #'   \item \code{lexicon::hash_sentiment_jockers_rinker}
 #'   \item \code{lexicon::hash_sentiment_jockers}
+#'   \item \code{lexicon::emojis_sentiment}
+#'   \item \code{lexicon::hash_sentiment_emojis}
 #'   \item \code{lexicon::hash_sentiment_huliu}
-#'   \item \code{lexicon::hash_sentiment_inquirer}
 #'   \item \code{lexicon::hash_sentiment_loughran_mcdonald}
 #'   \item \code{lexicon::hash_sentiment_nrc}
 #'   \item \code{lexicon::hash_sentiment_senticnet}
 #'   \item \code{lexicon::hash_sentiment_sentiword}
-#'   \item \code{lexicon::hash_sentiment_vadar}
-#'   \item \code{lexicon::hash_sentiment_emoji}
+#'   \item \code{lexicon::hash_sentiment_slangsd}
+#'   \item \code{lexicon::hash_sentiment_socal_google}
 #' }
 #' Additionally, the 
 #' \code{as_key} function can be used to make a sentiment frame suitable for
@@ -197,8 +198,8 @@
 #' The researcher may provide a weight \eqn{z} to be utilized with
 #' amplifiers/de-amplifiers (default is .8; de-amplifier weight is constrained
 #' to -1 lower bound).  Last, these weighted context clusters (\eqn{c_{i,j,l}}{c_i,j,l}) are
-#' summed (\eqn{c'_{i,j}}{c'_i,j}) and divided by the square root of the word count (\eqn{\sqrt{w_{i,jn}}}{\sqrtn w_i,jn}) yielding an unbounded
-#' polarity score (\eqn{\delta}{C}) for each sentence.
+#' summed (\eqn{c'_{i,j}}{c'_i,j}) and divided by the square root of the word count (\eqn{\sqrt{w_{i,jn}}}{\sqrtn w_i,jn}) yielding an \strong{unbounded
+#' polarity score} (\eqn{\delta}{C}) for each sentence.
 #'
 #' \deqn{\delta=\frac{c'_{i,j}}{\sqrt{w_{i,jn}}}}{C=c'_i,j,l/\sqrt(w_i,jn)}
 #'
@@ -274,7 +275,7 @@
 #' library(dplyr)
 #' library(magrittr)
 #' 
-#' cannon_reviews %>%
+#' hu_liu_cannon_reviews %>%
 #'    mutate(review_split = get_sentences(text)) %$%
 #'    sentiment(review_split)
 #' }
@@ -349,9 +350,10 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
     #     buts <- paste0('(', paste(buts, collapse = '|'), ')')
     #     sent_dat[, sentences := gsub(buts, ', \\1', sentences, ignore.case = TRUE, perl = TRUE)][]
     # }
-
+# browser() 
     ## replace like when preposition
     if (neutral.nonverb.like && 'like' %in% polarity_dt[[1]]) {
+       
         sent_dat[, 'sentences' := stringi::stri_replace_all_regex(
                 sentences,
                 like_preverbs_regex,
@@ -360,7 +362,7 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
             )
         ][]
     }
-    
+# browser()    
     # space fill (~~), break into words    
     sent_dat[, 'words' := list(make_words(space_fill(sentences, space_words), hyphen = hyphen))]
 
@@ -543,8 +545,13 @@ sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::
             adversative.weight = adversative.weight, missing_value = missing_value, 
             neutral.nonverb.like = neutral.nonverb.like, ...)
     
-    cbind(text.var, sent_out[, c('word_count',  'sentiment')])
-  
+    out <- cbind(text.var, sent_out[, c('word_count',  'sentiment')])
+
+    class(out) <- unique(c("sentiment", class(out)))
+    sentences <- new.env(FALSE)
+    sentences[["sentences"]] <- x
+    attributes(out)[["sentences"]] <- sentences
+    out[]      
 }
 
 replace_na <- function(x, y = 0) {x[is.na(x)] <- y; x}

@@ -113,6 +113,7 @@ count_words <- function(x){
 
 make_words <- function(x, hyphen = ""){
     if (hyphen != "") x <- gsub("-", hyphen, x)
+  
     lapply(stringi::stri_split_regex(gsub('([^[[:space:]]])([,;:][[:space:]])', '\\1 \\2', gsub("^\\s+|\\s+$", "", x)), "[[:space:]]+"), function(y) gsub('~{2,}', ' ', y))
 }
 
@@ -343,10 +344,10 @@ split_warn <- function(data, fun, len = 1000, nchar = 25000, sentimentr.warning 
     if (!is.null(sentimentr.warning) && !isTRUE(sentimentr.warning)) return(NULL)
     if (length(data) <= len && max(nchar(data), na.rm = TRUE) <= nchar) return(NULL) 
     
-    warning(paste0('Each time `', fun, '` is run it has to do sentence boundary ',
-        'disambiguation when a raw `character` vector is passed to `text.var`. ', 
-        'This may be costly of time and memory.  It is highly recommended that ',
-        'the user first runs the raw `character` vector through the `get_sentences` function.'
+    warning(call. = FALSE, paste0('Each time `', fun, '` is run it has to do sentence boundary ',
+        'disambiguation when a\nraw `character` vector is passed to `text.var`. ', 
+        'This may be costly of time and\nmemory.  It is highly recommended that ',
+        'the user first runs the raw `character`\nvector through the `get_sentences` function.'
     ))
     
 }
@@ -357,4 +358,27 @@ log_loss <- function(a, p){
     o <- -1 * (a * log(p) + (1 - a) * log(1 - p))
     mean(o)
 }
+
+
+
+fix_profanity_list <- function(x, warn = TRUE, ...){
+    if(!is.atomic(x)) stop('A `profanity_list` must be an atomic character vector.')
+    if(!is.character(x)) stop('A `profanity_list` must be a character vector.')  
+    if (any(grepl('[A-Z]', x), na.rm = TRUE)) {
+        if (warn) warning('Upper case characters found in `profanity_list`...\nConverting to lower', call. = FALSE)
+        x <- tolower(x)
+    }
+    if (anyNA(x)) {
+        if (warn) warning('missing values found in `profanity_list`...\nRemoving all `NA` values', call. = FALSE)
+        x <- x[!is.na(x)]
+    }    
+    if (anyDuplicated(x) > 0) {
+        if (warn) warning('duplicate values found in `profanity_list`...\nRemoving all duplicates', call. = FALSE)
+        x <- unique(x)
+    }   
+    x
+}
+
+
+
 

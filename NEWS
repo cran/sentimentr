@@ -17,6 +17,47 @@ And constructed with the following guidelines:
 * Bug fixes and misc changes bumps the patch
 
 
+sentimentr 2.5.0 - 2.6.1
+----------------------------------------------------------------
+
+BUG FIXES
+
+* `plot` returned an error for `sentiment` objects created by 
+  `sentiment.get_sentences.data.frame` due to the class assignments of the 
+  output ('sentiment' was not assigned as a class) and thus `plot.sentiment`
+  was not called.
+  
+* `combine_data` contained a bug in which data sets with extra columns were not 
+  combined and resulted in an error (see #94).
+  
+* If a dataset was passed to `get_sentences()` that had a column named 
+  `sentiment` and was then passed to `sentiment_by()`, the `sentiment` from the 
+  original data set was returned as `ave_sentiment` not the **sentimentr** 
+  computed value.
+  
+NEW FEATURES
+
+* `profanity` added as a means to assess the use of profanity in text.
+
+* `extract_profanity_terms` added to extract profanity terms from text.
+
+* The remaining four Hu & Liu data sets (see 
+  http://www.cs.uic.edu/~liub/FBS/CustomerReviewData.zip) have been added in 
+  addition to the Cannon reviews data set.  The family of sentiment tagged data
+  from Hu & Liu now includes: "hu_liu_apex_reviews", "hu_liu_cannon_reviews",
+  "hu_liu_jukebox_reviews", "hu_liu_nikon_reviews", & "hu_liu_nokia_reviews".
+  
+
+CHANGES
+
+* The `cannon_reviews` data set has been renamed to `hu_liu_cannon_reviews` to be
+  consistent with the other `hu_liu_` data sets that have been added.  This data
+  set is also now cleaner, excludes Hu & Liu's original categories that were some
+  times still visible.  Cleaning includes better capitalization and removal of 
+  spaces before punctuation to look less normalized.  Additionally, the `number`
+  column is now called `reviewer_id` to convey what the data actually is.
+
+
 sentimentr 2.4.0 - 2.4.2
 ----------------------------------------------------------------
 
@@ -123,7 +164,10 @@ sentimentr 2.0.1
 
 BUG FIXES
 
-* `get_sentences` assigned the class to the data.frame when a data.frame was passed but not to the text column, meaning the individual column could not be passed to `sentiment` or `sentiment_by` without having sentence boundary detection re-done.  This has been fixed.  See #53.
+* `get_sentences` assigned the class to the data.frame when a data.frame was 
+  passed but not to the text column, meaning the individual column could not be 
+  passed to `sentiment` or `sentiment_by` without having sentence boundary 
+  detection re-done.  This has been fixed.  See #53.
 
 
 

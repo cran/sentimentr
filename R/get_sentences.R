@@ -40,7 +40,7 @@ get_sentences.character <- function(x, ...) {
 get_sentences.data.frame <- function(x, ...) {
     
     dots <- list(...)
-    
+
     ## detect text variable
     if (is.null(dots[['text.var.name']])) {
         
@@ -93,5 +93,16 @@ get_sentences.sentiment_by <- function(x, ...) {
 
 
 
+#' @export
+#' @method get_sentences profanity
+get_sentences.profanity <- function(x, ...) {
+	  attributes(x)[["sentences"]][["sentences"]]
+}
 
+#' @export
+#' @method get_sentences profanity_by
+get_sentences.profanity_by <- function(x, ...) {
+	  y <- attributes(x)[["profanity"]][["profanity"]]
+	  attributes(y)[["sentences"]][["sentences"]]
+}
 

@@ -17,19 +17,20 @@ the repeated cost of doing sentence boundary disambiguation every time
 \code{sentiment} is run.}
 
 \item{polarity_dt}{A \pkg{data.table} of positive/negative words and
-weights with x and y as column names.  The \pkg{lexicon} package has 4 
-dictionaries that can be used here: 
+weights with x and y as column names.  The \pkg{lexicon} package has several 
+dictionaries that can be used, including: 
 \itemize{
   \item \code{lexicon::hash_sentiment_jockers_rinker}
   \item \code{lexicon::hash_sentiment_jockers}
+  \item \code{lexicon::emojis_sentiment}
+  \item \code{lexicon::hash_sentiment_emojis}
   \item \code{lexicon::hash_sentiment_huliu}
-  \item \code{lexicon::hash_sentiment_inquirer}
   \item \code{lexicon::hash_sentiment_loughran_mcdonald}
   \item \code{lexicon::hash_sentiment_nrc}
   \item \code{lexicon::hash_sentiment_senticnet}
   \item \code{lexicon::hash_sentiment_sentiword}
-  \item \code{lexicon::hash_sentiment_vadar}
-  \item \code{lexicon::hash_sentiment_emoji}
+  \item \code{lexicon::hash_sentiment_slangsd}
+  \item \code{lexicon::hash_sentiment_socal_google}
 }
 Additionally, the 
 \code{as_key} function can be used to make a sentiment frame suitable for
@@ -200,8 +201,8 @@ clause of greater values while lowering the value placed on the prior clause.
 The researcher may provide a weight \eqn{z} to be utilized with
 amplifiers/de-amplifiers (default is .8; de-amplifier weight is constrained
 to -1 lower bound).  Last, these weighted context clusters (\eqn{c_{i,j,l}}{c_i,j,l}) are
-summed (\eqn{c'_{i,j}}{c'_i,j}) and divided by the square root of the word count (\eqn{\sqrt{w_{i,jn}}}{\sqrtn w_i,jn}) yielding an unbounded
-polarity score (\eqn{\delta}{C}) for each sentence.
+summed (\eqn{c'_{i,j}}{c'_i,j}) and divided by the square root of the word count (\eqn{\sqrt{w_{i,jn}}}{\sqrtn w_i,jn}) yielding an \strong{unbounded
+polarity score} (\eqn{\delta}{C}) for each sentence.
 
 \deqn{\delta=\frac{c'_{i,j}}{\sqrt{w_{i,jn}}}}{C=c'_i,j,l/\sqrt(w_i,jn)}
 
@@ -286,7 +287,7 @@ sentiment(get_sentences(dat))
 library(dplyr)
 library(magrittr)
 
-cannon_reviews \%>\%
+hu_liu_cannon_reviews \%>\%
    mutate(review_split = get_sentences(text)) \%$\%
    sentiment(review_split)
 }
