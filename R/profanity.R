@@ -14,7 +14,7 @@
 #' @param profanity_list A atomic character vector of profane words.  The 
 #' \pkg{lexicon} package has lists that can be used, including: 
 #' \itemize{
-#'   \item \code{lexicon::profanity_alvarez}
+#'   \item \code{unique(tolower(lexicon::profanity_alvarez))}
 #'   \item \code{lexicon::profanity_arr_bad}
 #'   \item \code{lexicon::profanity_banned}
 #'   \item \code{lexicon::profanity_zac_anger}
@@ -30,12 +30,12 @@
 #'   \item profanity - A score of the percentage of profane words
 #' }
 #' @keywords profanity, cursing, vulgarity, cussing, bad-words
-#' @family polarity functions
+#' @family profanity functions
 #' @export
 #' @importFrom data.table :=
 #' @examples
 #' \dontrun{
-#' bw <- sample(lexicon::profanity_alvarez, 4)
+#' bw <- sample(unique(tolower(lexicon::profanity_alvarez)), 4)
 #' mytext <- c(
 #'    sprintf('do you like this %s?  It is %s. But I hate really bad dogs', bw[1], bw[2]),
 #'    'I am the best friend.',
@@ -58,11 +58,36 @@
 #' brady <- get_sentences(crowdflower_deflategate)
 #' brady_swears <- profanity(brady)
 #' brady_swears
+#' 
+#' ## Distribution of profanity proportion for all comments
 #' hist(brady_swears$profanity)
 #' sum(brady_swears$profanity > 0)
+#' 
+#' ## Distribution of proportions for those profane comments
 #' hist(brady_swears$profanity[brady_swears$profanity > 0])
+#' 
+#' combo <- combine_data()
+#' combo_sentences <- get_sentences(crowdflower_deflategate)
+#' racist <- profanity(combo_sentences, profanity_list = lexicon::profanity_racist)
+#' combo_sentences[racist$profanity > 0, ]$text
+#' extract_profanity_terms(
+#'     combo_sentences[racist$profanity > 0, ]$text, 
+#'     profanity_list = lexicon::profanity_racist
+#' )
+#' 
+#' ## Remove jerry, que, and illegal from the list
+#' library(textclean)
+#' 
+#' racist2 <- profanity(
+#'     combo_sentences, 
+#'     profanity_list = textclean::drop_element_fixed(
+#'         lexicon::profanity_racist, 
+#'         c('jerry', 'illegal', 'que')
+#'     )
+#' )
+#' combo_sentences[racist2$profanity > 0, ]$text
 #' }
-profanity <- function(text.var, profanity_list = lexicon::profanity_alvarez, ...) {
+profanity <- function(text.var, profanity_list = unique(tolower(lexicon::profanity_alvarez)), ...) {
     
     UseMethod('profanity')
     
@@ -71,15 +96,14 @@ profanity <- function(text.var, profanity_list = lexicon::profanity_alvarez, ...
 
 #' @export
 #' @method profanity get_sentences_character
-profanity.get_sentences_character <- function(text.var, profanity_list = lexicon::profanity_alvarez, ...) {
+profanity.get_sentences_character <- function(text.var, profanity_list = unique(tolower(lexicon::profanity_alvarez)), ...) {
 
 
     ## Ensure profanity_list conforms to standards
     profanity_list <- fix_profanity_list(profanity_list)
     
-    hit <- profanity_count <- word_count <- NULL
+    token <- hit <- profanity_count <- word_count <- NULL
     
-    token <- word_coun <- NULL
     lens <- lengths(text.var)
 
     ## make table of elements, sentence id, and sentences
@@ -125,7 +149,7 @@ profanity.get_sentences_character <- function(text.var, profanity_list = lexicon
 
 #' @export
 #' @method profanity character
-profanity.character <- function(text.var, profanity_list = lexicon::profanity_alvarez, ...) {
+profanity.character <- function(text.var, profanity_list = unique(tolower(lexicon::profanity_alvarez)), ...) {
 
     split_warn(text.var, 'profanity', ...)
     
@@ -137,7 +161,7 @@ profanity.character <- function(text.var, profanity_list = lexicon::profanity_al
 
 #' @export
 #' @method profanity get_sentences_data_frame
-profanity.get_sentences_data_frame <- function(text.var, profanity_list = lexicon::profanity_alvarez, ...) {
+profanity.get_sentences_data_frame <- function(text.var, profanity_list = unique(tolower(lexicon::profanity_alvarez)), ...) {
  
     x <- make_class(text.var[[attributes(text.var)[['text.var']]]], "get_sentences", "get_sentences_character")
 
@@ -172,7 +196,18 @@ profanity.get_sentences_data_frame <- function(text.var, profanity_list = lexico
 #' @export
 plot.profanity <- function(x, transformation.function = syuzhet::get_dct_transform, ...){
 
-    m <- transformation.function(stats::na.omit(x[["profanity"]]), ...)
+
+    x <- stats::na.omit(x[["profanity"]])
+    
+    if (length(x) < 3) stop('Output contains less than 3 observations.  Cannot plot n < 3', call. = FALSE)
+    
+    if (length(x) < 100 && isTRUE(all.equal(syuzhet::get_dct_transform, transformation.function))) {
+        x <- stats::approx(x = seq_along(x), y = x, n = 100)[['y']]
+    }    
+      
+        
+    
+    m <- transformation.function(x, ...)
 
     dat <- data.frame(
         Emotional_Valence = m,
