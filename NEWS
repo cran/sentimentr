@@ -18,6 +18,46 @@ And constructed with the following guidelines:
 
 
 
+
+sentimentr 2.8.0 - 2.9.0
+---------------------------------------------------------------
+
+BUG FIXES
+
+* `sentiment_by` did not capture `averaging.function` for some data types (e.g.,
+  'character' vectors) and was not able to be used by `highlight`.  Spotted by
+  Ken McGarry (see #104 for details).
+  
+* `sentiment` would not work if the polarity table contained no spaced words.
+  Spotted by GitHub user mrwunderbar666 (see #117 for details).
+
+* `emotion` would not give the correct response when the `text.var` contained no
+  negated words.  Spotted by git-igor (see #108 for details).
+  
+
+MINOR FEATURES
+
+* `sentiment` and `emotion` (`sentiment_by`, `emotion_by` & their `extract_` 
+  methods inherit this as well) pick up a `retention_regex` argument.  This 
+  regex was previously hard-coded in the function and didn't give users access 
+  to change this.  The previous version `"\\d:\\d|\\d\\s|[^a-z',;: ]"` was switched 
+  to `"\\d:\\d|\\d\\s|[^[:alpha:]',;: ]"` as the later swaps `a-z` for `[:alpha:]` meaning 
+  more alphabetic characters are retained.  While sentimentr has not been 
+  tested on other languages, this opens up the possibility for use with other
+  (especially Germanic) languages.  Thank you to johanneswaage and Matthias2018 
+  for raising awareness of this issue and Dominique EMMANUEL for suggesting a 
+  potetial way forward.  This suggestion led to the reworking and current approach.
+  See (see issues #74, #79 & #118 for more).
+
+IMPROVEMENTS
+
+* Added description of what the numeric value of `sentiment()` means (see 
+  **Results** in `?sentiment`) and examples of hot to bin the score to a
+  3 category `c('Negative', 'Neutral', 'Positive')` factor output.  These 
+  improvements in documentation came from Sadettin Demirel (see #128).
+
+
+
 sentimentr 2.7.0 - 2.7.1 
 ----------------------------------------------------------------
 
@@ -41,7 +81,7 @@ BUG FIXES
   (see #102).
   
 * `highlight()` used `mean()` as the averaging function regardless of the 
-  `averaging.function` argument supplied to `sentiment_by()`.  THis behavior has
+  `averaging.function` argument supplied to `sentiment_by()`.  This behavior has
   been corrected.  Spotted thanks to Kelvin Lam (see #103).
 
 NEW FEATURES
@@ -53,7 +93,7 @@ NEW FEATURES
 
 IMPROVEMENTS
 
-* The default profanity list in `profanity` & `extract_profanity_terms was not 
+* The default profanity list in `profanity` & `extract_profanity_terms` was not 
   lower cased or unique which resulted in a warning every time it was run.  This 
   list is now passed as `unique(tolower(lexicon::profanity_alvarez))` to avoid 
   the warnings.

@@ -160,18 +160,20 @@ make_words <- function(x, hyphen = ""){
 #     dat[, indx:= wc < 1, by=c('id', 'sentences', 'wc')][(indx), c('sentences', 'wc'):=NA][, 
 #         indx:=NULL]
 # }
-make_sentence_df2 <- function(sents){
+make_sentence_df2 <- function(sents, retention_regex = "[^[:alpha:]',;: ]|\\d:\\d|\\d "){
 
     indx <- wc <- NULL
 
     ids <- add_row_id(sents)
-    text.var <- gsub("[^a-z',;: ]|\\d:\\d|\\d ", " ", 
+    text.var <- gsub(
+        retention_regex, 
+        " ", 
         stringi::stri_trans_tolower(gsub("(\\s*)([;:,]+)", " \\2", unlist(sents)))
     )
     dat <- data.frame(
         id = ids,
         sentences = text.var,
-    	  wc = count_words(text.var),
+    	wc = count_words(text.var),
         stringsAsFactors = FALSE
     )
     data.table::setDT(dat)
@@ -190,7 +192,7 @@ make_sentence_df2 <- function(sents){
     if (length(replacement) == 1) replacement <- rep(replacement, length(pattern))
 
     for (i in seq_along(pattern)){
-        text.var <- gsub(pattern[i], replacement[i], text.var, fixed = fixed, ...)
+        text.var <- gsub(pattern[i], replacement[i], text.var, fixed = fixed, ..., perl = TRUE)
     }
 
     text.var
@@ -199,13 +201,13 @@ make_sentence_df2 <- function(sents){
 
 space_fill_senti <- function(x, doubles){
 
-  .mgsub(paste0('(?<!~~)', doubles), gsub("\\s+", "~~", doubles), x, fixed = FALSE, perl = TRUE)
+  .mgsub(paste0('(?<!~~)', doubles), gsub("\\s+", "~~", doubles, perl = TRUE), x, fixed = FALSE)
 
 }
 
 space_fill <- function(x, doubles){ ## for non-sentiment functions
 
-  .mgsub(doubles, gsub("\\s+", "~~", doubles), x)
+  .mgsub(doubles, gsub("\\s+", "~~", doubles, perl = TRUE), x)
 
 }
 

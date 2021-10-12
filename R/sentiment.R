@@ -91,13 +91,19 @@
 #' results will come from setting this argument to \code{TRUE}.
 #' @param missing_value A value to replace \code{NA}/\code{NaN} with.  Use
 #' \code{NULL} to retain missing values.
+#' @param retention_regex A regex of what characters to keep.  All other 
+#' characters will be removed.  Note that when this is used all text is lower 
+#' case format.  Only adjust this parameter if you really understand how it is 
+#' used.  Note that swapping the \code{\\\\p{L}} for \code{[^[:alpha:];:,\']} may 
+#' retain more alpha letters but will likely decrease speed.  See examples below 
+#' for how to test the need for \code{\\\\p{L}}.
 #' @param \ldots Ignored.
 #' @return Returns a \pkg{data.table} of:
 #' \itemize{
 #'   \item  element_id - The id number of the original vector passed to \code{sentiment}
 #'   \item  sentence_id - The id number of the sentences within each \code{element_id}
 #'   \item  word_count - Word count
-#'   \item  sentiment - Sentiment/polarity score
+#'   \item  sentiment - Sentiment/polarity score (note: sentiments less than zero is negative, 0 is neutral, and greater than zero positive polarity)
 #' }
 #' @references Jockers, M. L. (2017). Syuzhet: Extract sentiment and plot arcs 
 #' from text. Retrieved from https://github.com/mjockers/syuzhet
@@ -107,13 +113,12 @@
 #' 
 #' Halliday, M. A. K. & Hasan, R. (2013). Cohesion in English. New York, NY: Routledge.
 #' 
-#' \url{http://www.slideshare.net/jeffreybreen/r-by-example-mining-twitter-for}
+#' \url{https://www.slideshare.net/jeffreybreen/r-by-example-mining-twitter-for}
 #'
 #' \url{http://hedonometer.org/papers.html} Links to papers on hedonometrics
-#' @keywords sentiment, polarity
 #' @export
 #' @family sentiment functions
-#' @seealso \url{https://github.com/trestletech/Sermon-Sentiment-Analysis}
+#' @seealso Original URL: https://github.com/trestletech/Sermon-Sentiment-Analysis
 #' @note The polarity score is dependent upon the polarity dictionary used.
 #' This function defaults to a combined and augmented version of Jocker's (2017) 
 #' [originally exported by the \pkg{syuzhet} package] & Rinker's augmented Hu & Liu (2004) 
@@ -259,6 +264,27 @@
 #' sentiment(y)
 #' sentiment(y, n.before=Inf)
 #' 
+#' \dontrun{## Categorize the polarity (tidyverse vs. data.table):
+#' library(dplyr)
+#' sentiment(mytext) %>%
+#' as_tibble() %>%
+#'     mutate(category = case_when(
+#'         sentiment < 0 ~ 'Negative', 
+#'         sentiment == 0 ~ 'Neutral', 
+#'         sentiment > 0 ~ 'Positive'
+#'     ) %>%
+#'     factor(levels = c('Negative', 'Neutral', 'Positive'))
+#' )
+#' 
+#' library(data.table)
+#' dt <- sentiment(mytext)[, category := factor(fcase(
+#'         sentiment < 0, 'Negative', 
+#'         sentiment == 0, 'Neutral', 
+#'         sentiment > 0, 'Positive'
+#'     ), levels = c('Negative', 'Neutral', 'Positive'))][]
+#' dt
+#' }
+#' 
 #' dat <- data.frame(
 #'     w = c('Person 1', 'Person 2'),
 #'     x = c(paste0(
@@ -307,12 +333,67 @@
 #' x %>%
 #'     mutate(Tweet = replace_emoji_identifier(Tweet)) %$%
 #'     sentiment(Tweet, polarity_dt = combined_emoji)
+#'     
+#' ## Use With Non-ASCII
+#' ## Warning: sentimentr has not been tested with languages other than English.
+#' ## The example below is how one might use sentimentr if you believe the 
+#' ## language you are working with are similar enough in grammar to for
+#' ## sentimentr to be viable (likely Germanic languages)
+#' ## english_sents <- c(
+#' ##     "I hate bad people.",
+#' ##     "I like yummy cookie.",
+#' ##     "I don't love you anymore; sorry."
+#' ## )
 #' 
+#' ## Roughly equivalent to the above English
+#' danish_sents <- stringi::stri_unescape_unicode(c(
+#'     "Jeg hader d\\u00e5rlige mennesker.", 
+#'     "Jeg kan godt lide l\\u00e6kker is.", 
+#'     "Jeg elsker dig ikke mere; undskyld."
+#' ))
+#' 
+#' danish_sents
+#' 
+#' ## Polarity terms
+#' polterms <- stringi::stri_unescape_unicode(
+#'     c('hader', 'd\\u00e5rlige', 'undskyld', 'l\\u00e6kker', 'kan godt', 'elsker')
+#' )
+#' 
+#' ## Make polarity_dt
+#' danish_polarity <- as_key(data.frame(
+#'     x = stringi::stri_unescape_unicode(polterms),
+#'     y = c(-1, -1, -1, 1, 1, 1)
+#' ))
+#' 
+#' ## Make valence_shifters_dt
+#' danish_valence_shifters <- as_key(
+#'     data.frame(x='ikke', y="1"), 
+#'     sentiment = FALSE, 
+#'     comparison = NULL
+#' )
+#' 
+#' sentiment(
+#'     danish_sents, 
+#'     polarity_dt = danish_polarity, 
+#'     valence_shifters_dt = danish_valence_shifters, 
+#'     retention_regex = "\\d:\\d|\\d\\s|[^\\p{L}',;: ]"
+#' )
+#' 
+#' ## A way to test if you need [:alpha:] vs \\p{L} in `retention_regex`:
+#' 
+#' ## 1. Does it wreck some of the non-ascii characters by default?
+#' sentimentr:::make_sentence_df2(danish_sents) 
+#' 
+#' ## 2.Does this?
+#' sentimentr:::make_sentence_df2(danish_sents, "\\d:\\d|\\d\\s|[^\\p{L}',;: ]")
+#' 
+#' ## If you answer yes to #1 but no to #2 you likely want \\p{L}
 #' }
 sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, ...){
+    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, 
+    retention_regex = "\\d:\\d|\\d\\s|[^[:alpha:]',;: ]", ...){
     
     UseMethod('sentiment')
     
@@ -325,7 +406,8 @@ sentiment <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_ri
 sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, ...){
+    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, 
+    retention_regex = "\\d:\\d|\\d\\s|[^[:alpha:]',;: ]", ...){
 
     sentences <- id2 <- pol_loc <- comma_loc <- P <- non_pol <- lens <-
             cluster_tag <- w_neg <- neg <- A <- a <- D <- d <- wc <- id <-
@@ -345,7 +427,7 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
     sents <- text.var
     
     # break rows into count words
-    sent_dat <- make_sentence_df2(sents)
+    sent_dat <- make_sentence_df2(sents, retention_regex = retention_regex)
     # buts <- valence_shifters_dt[valence_shifters_dt[[2]] == 4,][['x']]
     # 
     # if (length(buts) > 0){
@@ -365,9 +447,13 @@ sentiment.get_sentences_character <- function(text.var, polarity_dt = lexicon::h
         ][]
     }
  
-    # space fill (~~), break into words    
-    sent_dat[, 'words' := list(make_words(space_fill_senti(sentences, space_words), hyphen = hyphen))]
-
+    # space fill (~~), break into words 
+    if (length(space_words) == 0){
+        sent_dat[, 'words' := list(make_words(sentences, hyphen = hyphen))]
+    } else {
+        sent_dat[, 'words' := list(make_words(space_fill_senti(sentences, space_words), hyphen = hyphen))]
+    }
+    
     # make sentence id for each row id
     sent_dat[, id2:=seq_len(.N), by='id']
 
@@ -517,7 +603,8 @@ like_preverbs_regex <- paste0('\\b(', paste(like_preverbs, collapse = '|'), ')(\
 sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, ...){
+    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, 
+    retention_regex = "\\d:\\d|\\d\\s|[^[:alpha:]',;: ]", ...){
 
     split_warn(text.var, 'sentiment', ...)
     
@@ -527,7 +614,8 @@ sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_
         amplifier.weight = amplifier.weight, n.before = n.before, 
         n.after = n.after, question.weight = question.weight,
         adversative.weight = adversative.weight, missing_value = missing_value, 
-        neutral.nonverb.like = neutral.nonverb.like, c(';', ':',  ','), ...)
+        retention_regex = retention_regex,
+        neutral.nonverb.like = neutral.nonverb.like,  ...)
   
 }
 
@@ -536,7 +624,8 @@ sentiment.character <- function(text.var, polarity_dt = lexicon::hash_sentiment_
 sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
     valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
     amplifier.weight = .8, n.before = 5, n.after = 2, question.weight = 1,
-    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, ...){
+    adversative.weight = .25, neutral.nonverb.like = FALSE, missing_value = 0, 
+    retention_regex = "\\d:\\d|\\d\\s|[^[:alpha:]',;: ]", ...){
  
     x <- make_class(text.var[[attributes(text.var)[['text.var']]]], "get_sentences", "get_sentences_character")
 
@@ -545,7 +634,7 @@ sentiment.get_sentences_data_frame <- function(text.var, polarity_dt = lexicon::
             amplifier.weight = amplifier.weight, n.before = n.before, 
             n.after = n.after, question.weight = question.weight,
             adversative.weight = adversative.weight, missing_value = missing_value, 
-            neutral.nonverb.like = neutral.nonverb.like, ...)
+            neutral.nonverb.like = neutral.nonverb.like, retention_regex = retention_regex, ...)
     
     out <- cbind(text.var, sent_out[, c('word_count',  'sentiment')])
 
@@ -600,3 +689,4 @@ plot.sentiment <- function(x, transformation.function = syuzhet::get_dct_transfo
 
 }
 
+ 

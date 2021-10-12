@@ -4,11 +4,21 @@
 \alias{sentiment}
 \title{Polarity Score (Sentiment Analysis)}
 \usage{
-sentiment(text.var, polarity_dt = lexicon::hash_sentiment_jockers_rinker,
-  valence_shifters_dt = lexicon::hash_valence_shifters, hyphen = "",
-  amplifier.weight = 0.8, n.before = 5, n.after = 2,
-  question.weight = 1, adversative.weight = 0.25,
-  neutral.nonverb.like = FALSE, missing_value = 0, ...)
+sentiment(
+  text.var,
+  polarity_dt = lexicon::hash_sentiment_jockers_rinker,
+  valence_shifters_dt = lexicon::hash_valence_shifters,
+  hyphen = "",
+  amplifier.weight = 0.8,
+  n.before = 5,
+  n.after = 2,
+  question.weight = 1,
+  adversative.weight = 0.25,
+  neutral.nonverb.like = FALSE,
+  missing_value = 0,
+  retention_regex = "\\\\d:\\\\d|\\\\d\\\\s|[^[:alpha:]',;: ]",
+  ...
+)
 }
 \arguments{
 \item{text.var}{The text variable.  Can be a \code{get_sentences} object or
@@ -106,6 +116,13 @@ results will come from setting this argument to \code{TRUE}.}
 \item{missing_value}{A value to replace \code{NA}/\code{NaN} with.  Use
 \code{NULL} to retain missing values.}
 
+\item{retention_regex}{A regex of what characters to keep.  All other 
+characters will be removed.  Note that when this is used all text is lower 
+case format.  Only adjust this parameter if you really understand how it is 
+used.  Note that swapping the \code{\\\\p{L}} for \code{[^[:alpha:];:,\']} may 
+retain more alpha letters but will likely decrease speed.  See examples below 
+for how to test the need for \code{\\\\p{L}}.}
+
 \item{\ldots}{Ignored.}
 }
 \value{
@@ -114,7 +131,7 @@ Returns a \pkg{data.table} of:
   \item  element_id - The id number of the original vector passed to \code{sentiment}
   \item  sentence_id - The id number of the sentences within each \code{element_id}
   \item  word_count - Word count
-  \item  sentiment - Sentiment/polarity score
+  \item  sentiment - Sentiment/polarity score (note: sentiments less than zero is negative, 0 is neutral, and greater than zero positive polarity)
 }
 }
 \description{
@@ -271,6 +288,27 @@ y <- get_sentences(
 sentiment(y)
 sentiment(y, n.before=Inf)
 
+\dontrun{## Categorize the polarity (tidyverse vs. data.table):
+library(dplyr)
+sentiment(mytext) \%>\%
+as_tibble() \%>\%
+    mutate(category = case_when(
+        sentiment < 0 ~ 'Negative', 
+        sentiment == 0 ~ 'Neutral', 
+        sentiment > 0 ~ 'Positive'
+    ) \%>\%
+    factor(levels = c('Negative', 'Neutral', 'Positive'))
+)
+
+library(data.table)
+dt <- sentiment(mytext)[, category := factor(fcase(
+        sentiment < 0, 'Negative', 
+        sentiment == 0, 'Neutral', 
+        sentiment > 0, 'Positive'
+    ), levels = c('Negative', 'Neutral', 'Positive'))][]
+dt
+}
+
 dat <- data.frame(
     w = c('Person 1', 'Person 2'),
     x = c(paste0(
@@ -319,7 +357,61 @@ combined_emoji <- update_polarity_table(
 x \%>\%
     mutate(Tweet = replace_emoji_identifier(Tweet)) \%$\%
     sentiment(Tweet, polarity_dt = combined_emoji)
+    
+## Use With Non-ASCII
+## Warning: sentimentr has not been tested with languages other than English.
+## The example below is how one might use sentimentr if you believe the 
+## language you are working with are similar enough in grammar to for
+## sentimentr to be viable (likely Germanic languages)
+## english_sents <- c(
+##     "I hate bad people.",
+##     "I like yummy cookie.",
+##     "I don't love you anymore; sorry."
+## )
 
+## Roughly equivalent to the above English
+danish_sents <- stringi::stri_unescape_unicode(c(
+    "Jeg hader d\\\\u00e5rlige mennesker.", 
+    "Jeg kan godt lide l\\\\u00e6kker is.", 
+    "Jeg elsker dig ikke mere; undskyld."
+))
+
+danish_sents
+
+## Polarity terms
+polterms <- stringi::stri_unescape_unicode(
+    c('hader', 'd\\\\u00e5rlige', 'undskyld', 'l\\\\u00e6kker', 'kan godt', 'elsker')
+)
+
+## Make polarity_dt
+danish_polarity <- as_key(data.frame(
+    x = stringi::stri_unescape_unicode(polterms),
+    y = c(-1, -1, -1, 1, 1, 1)
+))
+
+## Make valence_shifters_dt
+danish_valence_shifters <- as_key(
+    data.frame(x='ikke', y="1"), 
+    sentiment = FALSE, 
+    comparison = NULL
+)
+
+sentiment(
+    danish_sents, 
+    polarity_dt = danish_polarity, 
+    valence_shifters_dt = danish_valence_shifters, 
+    retention_regex = "\\\\d:\\\\d|\\\\d\\\\s|[^\\\\p{L}',;: ]"
+)
+
+## A way to test if you need [:alpha:] vs \\p{L} in `retention_regex`:
+
+## 1. Does it wreck some of the non-ascii characters by default?
+sentimentr:::make_sentence_df2(danish_sents) 
+
+## 2.Does this?
+sentimentr:::make_sentence_df2(danish_sents, "\\\\d:\\\\d|\\\\d\\\\s|[^\\\\p{L}',;: ]")
+
+## If you answer yes to #1 but no to #2 you likely want \\p{L}
 }
 }
 \references{
@@ -331,15 +423,14 @@ reviews. National Conference on Artificial Intelligence.
 
 Halliday, M. A. K. & Hasan, R. (2013). Cohesion in English. New York, NY: Routledge.
 
-\url{http://www.slideshare.net/jeffreybreen/r-by-example-mining-twitter-for}
+\url{https://www.slideshare.net/jeffreybreen/r-by-example-mining-twitter-for}
 
 \url{http://hedonometer.org/papers.html} Links to papers on hedonometrics
 }
 \seealso{
-\url{https://github.com/trestletech/Sermon-Sentiment-Analysis}
+Original URL: https://github.com/trestletech/Sermon-Sentiment-Analysis
 
-Other sentiment functions: \code{\link{sentiment_by}}
+Other sentiment functions: 
+\code{\link{sentiment_by}()}
 }
 \concept{sentiment functions}
-\keyword{polarity}
-\keyword{sentiment,}

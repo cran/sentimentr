@@ -17,6 +17,11 @@
 #' be treated as \code{"not happy"}.  If an emotion word has an un- version in the
 #' \code{emotion_dt} then no substitution is performed and an optional warning
 #' will be given. 
+#' @param retention_regex A regex of what characters to keep.  All other 
+#' characters will be removed.  Note that when this is used all text is lower 
+#' case format.  Only adjust this parameter if you really understand how it is 
+#' used.  Note that swapping the \code{\\\\{p}} for \code{[^[:alpha:];:,\']} may 
+#' retain more alpha letters but will likely decrease speed.
 #' @param \ldots Ignored.
 #' @return Returns a \pkg{data.table} with a columns of emotion terms.
 #' @export
@@ -71,7 +76,7 @@
 #' }
 extract_emotion_terms  <- function(text.var, 
     emotion_dt = lexicon::hash_nrc_emotions, 
-    un.as.negation = TRUE,
+    un.as.negation = TRUE, retention_regex = "[^[:alpha:];:,\']",
     ...){
 
     UseMethod('extract_emotion_terms')   
@@ -81,7 +86,7 @@ extract_emotion_terms  <- function(text.var,
 #' @method extract_emotion_terms get_sentences_character
 extract_emotion_terms.get_sentences_character <- function(text.var, 
     emotion_dt = lexicon::hash_nrc_emotions, 
-    un.as.negation = TRUE, 
+    un.as.negation = TRUE, retention_regex = "[^[:alpha:];:,\']", 
     ...){
 
     sentences <- sentence <- sentence_id <- n <- words <- N <- . <- NULL
@@ -125,7 +130,7 @@ extract_emotion_terms.get_sentences_character <- function(text.var,
         token := stringi::stri_replace_all_regex(
                 stringi::stri_replace_all_regex(
                     stringi::stri_replace_all_regex(token, '[!.;:?]$', ''), 
-                    '[^a-zA-Z;:,\']', ' '), 
+                    retention_regex, ' '), 
                 '[;:,]\\s+', ' [;:,] ')]
 
 
@@ -189,14 +194,14 @@ extract_emotion_terms.get_sentences_character <- function(text.var,
 #' @method extract_emotion_terms get_sentences_data_frame
 extract_emotion_terms.get_sentences_data_frame  <- function(text.var, 
     emotion_dt = lexicon::hash_nrc_emotions, 
-    un.as.negation = TRUE, 
+    un.as.negation = TRUE, retention_regex = "[^[:alpha:];:,\']", 
     ...){
     
     x <- make_class(text.var[[attributes(text.var)[['text.var']]]], 
         "get_sentences", "get_sentences_character")
 
     extract_emotion_terms(x, emotion_dt = emotion_dt, 
-        un.as.negation = un.as.negation, ...)
+        un.as.negation = un.as.negation, retention_regex = retention_regex, ...)
 
 }
 
@@ -205,14 +210,14 @@ extract_emotion_terms.get_sentences_data_frame  <- function(text.var,
 #' @method extract_emotion_terms character
 extract_emotion_terms.character  <- function(text.var, 
     emotion_dt = lexicon::hash_nrc_emotions, 
-    un.as.negation = TRUE, 
+    un.as.negation = TRUE, retention_regex = "[^[:alpha:];:,\']", 
     ...){
     
     split_warn(text.var, 'extract_emotion', ...)
 
     sents <- get_sentences(text.var)      
     extract_emotion_terms(sents, emotion_dt = emotion_dt, 
-        un.as.negation = un.as.negation, ...)
+        un.as.negation = un.as.negation, retention_regex = retention_regex, ...)
 
     
 }

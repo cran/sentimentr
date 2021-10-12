@@ -32,7 +32,6 @@
 #'   \item  sd - Standard deviation (\code{\link[stats]{sd}}) of the sentiment/polarity score by grouping variable
 #'   \item  ave_sentiment - Sentiment/polarity score \code{\link[base]{mean}} average by grouping variable
 #' }
-#' @keywords sentiment, polarity, group
 #' @export
 #' @family sentiment functions
 #' @section Chaining:
@@ -246,6 +245,9 @@ sentiment_by.get_sentences_data_frame <- function(text.var, by = NULL,
     data.table::setnames(uncombined, new = 'sentiment', old = 'sentiment_sentimentr_package')     
     uncombine[["uncombine"]] <- uncombined
     attributes(out2)[["uncombine"]] <- uncombine
+    
+    attributes(out2)[["averaging.function"]] <- averaging.function
+    
     out2
 
 }
@@ -310,6 +312,9 @@ sentiment_by.character <- function(text.var, by = NULL,
     uncombine <- new.env(FALSE)
     uncombine[["uncombine"]] <- uncombined
     attributes(out2)[["uncombine"]] <- uncombine
+    
+    attributes(out2)[["averaging.function"]] <- averaging.function
+    
     out2
 
 }
@@ -371,6 +376,9 @@ sentiment_by.sentiment_by <- function(text.var, by = NULL,
     uncombine <- new.env(FALSE)
     uncombine[["uncombine"]] <- uncombined
     attributes(out2)[["uncombine"]] <- uncombine
+    
+    attributes(out2)[["averaging.function"]] <- averaging.function
+    
     out2
 
 }
@@ -432,6 +440,9 @@ sentiment_by.sentiment <- function(text.var, by = NULL,
     uncombine <- new.env(FALSE)
     uncombine[["uncombine"]] <- uncombined
     attributes(out2)[["uncombine"]] <- uncombine
+    
+    attributes(out2)[["averaging.function"]] <- averaging.function
+    
     out2
 
 }

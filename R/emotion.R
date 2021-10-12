@@ -47,6 +47,11 @@
 #' use \code{n.after = Inf}.  Note that a comma, colon, or semicolon acts as a 
 #' boundary for considered words.  Only words between the emotion word and these
 #' punctuation types will be considered.
+#' @param retention_regex A regex of what characters to keep.  All other 
+#' characters will be removed.  Note that when this is used all text is lower 
+#' case format.  Only adjust this parameter if you really understand how it is 
+#' used.  Note that swapping the \code{\\\\{p}} for \code{[^[:alpha:];:,\']} may 
+#' retain more alpha letters but will likely decrease speed.
 #' @param \ldots ignored.
 #' @return Returns a \pkg{data.table} of:
 #' \itemize{
@@ -57,7 +62,6 @@
 #'   \item emotion_count - Count of the number of emotion words of that \code{emotion_type}
 #'   \item emotion - A score of the percentage of emotion words of that \code{emotion_type}
 #' }
-#' @keywords emotion, cursing, vulgarity, cussing, bad-words
 #' @family emotion functions
 #' @export
 #' @references Plutchik, R. (1962). The emotions: Facts and theories, and a new 
@@ -127,7 +131,7 @@ emotion <- function(text.var,
     valence_shifters_dt = lexicon::hash_valence_shifters, 
     drop.unused.emotions = FALSE, un.as.negation = TRUE,
     un.as.negation.warn = isTRUE(all.equal(valence_shifters_dt, lexicon::hash_nrc_emotions)), 
-    n.before = 5, n.after = 2, ...) {
+    n.before = 5, n.after = 2, retention_regex = "[^[:alpha:];:,\']", ...) {
     
     UseMethod('emotion')
     
@@ -142,7 +146,7 @@ emotion.get_sentences_character <- function(text.var,
     valence_shifters_dt = lexicon::hash_valence_shifters, 
     drop.unused.emotions = FALSE, un.as.negation = TRUE,
     un.as.negation.warn = isTRUE(all.equal(valence_shifters_dt, lexicon::hash_nrc_emotions)), 
-    n.before = 5, n.after = 2, ...) {
+    n.before = 5, n.after = 2, retention_regex = "[^[:alpha:];:,\']", ...) {
     
     emotion <- emo_loc <- comma_loc <- negator_loc <- is_emo <- y <- NULL
     is_negator <- is_negated <- emotion_count <- token <- hit <- word_count <- NULL
@@ -151,13 +155,13 @@ emotion.get_sentences_character <- function(text.var,
     is_emotion(emotion_dt)
 
     lens <- lengths(text.var)
-
+# browser()
     ## make table of elements, sentence id, and sentences
     element_map <- data.table::data.table(
         element_id = rep(seq_along(lens), lens),
         sentence_id = unlist(lapply(lens, seq_len)),
         token = unlist(text.var)
-    )[, list(token = tolower(unlist(token))), by = c('element_id', 'sentence_id')][,
+    )[, list(token = trimws(tolower(unlist(token)))), by = c('element_id', 'sentence_id')][,
         word_count := count_words(token)]
 
     ## Chack for spaces in the emotion list to ensure the tokenizer keeps them
@@ -180,24 +184,29 @@ emotion.get_sentences_character <- function(text.var,
                 call. = FALSE
             )
         }
-        
-        regex <- paste0('\\b(un)(', paste(keeps, collapse = '|'), ')\\b')
+
+        regex <- paste0('\\b(un)(', paste(gsub('^un', '', keeps, perl = TRUE), collapse = '|'), ')\\b')
         element_map <- element_map[, token := stringi::stri_replace_all_regex(token, regex, 'not $2')][]
         
     }
-  
+
     ## count words, tokenize
     tidied <- element_map[,
         token := space_fill(token, space_words)][,
         token := stringi::stri_replace_all_regex(
                 stringi::stri_replace_all_regex(
                     stringi::stri_replace_all_regex(token, '[!.;:?]$', ''), 
-                    '[^a-zA-Z;:,\']', ' '), 
-                '[;:,]\\s+', ' [;:,] ')]
+                    retention_regex, 
+                    ' '
+                ), 
+                '[;:,]\\s+', 
+                ' [;:,] '
+            )
+        ]
 
 
     tidied[['token']] <- as.list(stringi::stri_split_regex(tidied[['token']], '\\s+'))
-    
+
     tidied <- tidied[,
             list(token = stringi::stri_replace_all_regex(unlist(token), '~~', ' ')), 
                 by =c('element_id', 'sentence_id', 'word_count')][, 
@@ -216,7 +225,7 @@ emotion.get_sentences_character <- function(text.var,
                 emotion = emotion,
                 is_emo = sum(!is.na(emo_loc)) > 0), 
                 by = c('element_id', 'sentence_id')][]
-    
+
     ##-------------------------------------START--------------------------------
     ## IN THIS PORTION WE IDENTIFY EMOTIONS THAT ARE NEGATED
     
@@ -244,7 +253,7 @@ emotion.get_sentences_character <- function(text.var,
                     c('element_id', 'sentence_id',  'emo_loc', 'is_negated')][]
         
         } else {
-            emo_dat <- emo_dat[,c('element_id', 'sentence_id', 'emo_loc')][, is_negated := FALSE][]
+            emo_dat <- unique(emo_dat[,c('element_id', 'sentence_id', 'emo_loc')])[, is_negated := FALSE][]
         }
 
         out <- merge(
@@ -398,7 +407,7 @@ emotion.character <- function(text.var,
     valence_shifters_dt = lexicon::hash_valence_shifters, 
     drop.unused.emotions = FALSE, un.as.negation = TRUE,
     un.as.negation.warn = isTRUE(all.equal(valence_shifters_dt, lexicon::hash_nrc_emotions)), 
-    n.before = 5, n.after = 2, ...) {
+    n.before = 5, n.after = 2, retention_regex = "[^[:alpha:];:,\']", ...) {
 
     split_warn(text.var, 'emotion', ...)
     
@@ -409,8 +418,10 @@ emotion.character <- function(text.var,
         drop.unused.emotions = drop.unused.emotions,
         un.as.negation = un.as.negation, 
         un.as.negation.warn = un.as.negation.warn, 
+        retention_regex = retention_regex,
         n.before = n.before, 
         n.after = n.after,
+        
         ...
     )
   
@@ -424,7 +435,7 @@ emotion.get_sentences_data_frame <- function(text.var,
     valence_shifters_dt = lexicon::hash_valence_shifters, 
     drop.unused.emotions = FALSE, un.as.negation = TRUE,
     un.as.negation.warn = isTRUE(all.equal(valence_shifters_dt, lexicon::hash_nrc_emotions)), 
-    n.before = 5, n.after = 2, ...) {
+    n.before = 5, n.after = 2, retention_regex = "[^[:alpha:];:,\']", ...) {
  
     x <- make_class(text.var[[attributes(text.var)[['text.var']]]], "get_sentences", "get_sentences_character")
 
@@ -436,6 +447,7 @@ emotion.get_sentences_data_frame <- function(text.var,
         un.as.negation.warn = un.as.negation.warn, 
         n.before = n.before, 
         n.after = n.after,
+        retention_regex = retention_regex, 
         ...
     )
     

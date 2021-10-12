@@ -4,8 +4,13 @@
 \alias{extract_emotion_terms}
 \title{Extract Emotion Words}
 \usage{
-extract_emotion_terms(text.var, emotion_dt = lexicon::hash_nrc_emotions,
-  un.as.negation = TRUE, ...)
+extract_emotion_terms(
+  text.var,
+  emotion_dt = lexicon::hash_nrc_emotions,
+  un.as.negation = TRUE,
+  retention_regex = "[^[:alpha:];:,']",
+  ...
+)
 }
 \arguments{
 \item{text.var}{The text variable.  Can be a \code{get_sentences} object or
@@ -24,6 +29,12 @@ with an 'un-' are treated as a negation.  For example,\code{"unhappy"} would
 be treated as \code{"not happy"}.  If an emotion word has an un- version in the
 \code{emotion_dt} then no substitution is performed and an optional warning
 will be given.}
+
+\item{retention_regex}{A regex of what characters to keep.  All other 
+characters will be removed.  Note that when this is used all text is lower 
+case format.  Only adjust this parameter if you really understand how it is 
+used.  Note that swapping the \code{\\\\{p}} for \code{[^[:alpha:];:,\']} may 
+retain more alpha letters but will likely decrease speed.}
 
 \item{\ldots}{Ignored.}
 }

@@ -4,11 +4,19 @@
 \alias{emotion}
 \title{Compute Emotion Rate}
 \usage{
-emotion(text.var, emotion_dt = lexicon::hash_nrc_emotions,
+emotion(
+  text.var,
+  emotion_dt = lexicon::hash_nrc_emotions,
   valence_shifters_dt = lexicon::hash_valence_shifters,
-  drop.unused.emotions = FALSE, un.as.negation = TRUE,
+  drop.unused.emotions = FALSE,
+  un.as.negation = TRUE,
   un.as.negation.warn = isTRUE(all.equal(valence_shifters_dt,
-  lexicon::hash_nrc_emotions)), n.before = 5, n.after = 2, ...)
+    lexicon::hash_nrc_emotions)),
+  n.before = 5,
+  n.after = 2,
+  retention_regex = "[^[:alpha:];:,']",
+  ...
+)
 }
 \arguments{
 \item{text.var}{The text variable.  Can be a \code{get_sentences} object or
@@ -58,6 +66,12 @@ the emotion word.  To consider the entire ending portion of a sentence
 use \code{n.after = Inf}.  Note that a comma, colon, or semicolon acts as a 
 boundary for considered words.  Only words between the emotion word and these
 punctuation types will be considered.}
+
+\item{retention_regex}{A regex of what characters to keep.  All other 
+characters will be removed.  Note that when this is used all text is lower 
+case format.  Only adjust this parameter if you really understand how it is 
+used.  Note that swapping the \code{\\\\{p}} for \code{[^[:alpha:];:,\']} may 
+retain more alpha letters but will likely decrease speed.}
 
 \item{\ldots}{ignored.}
 }
@@ -145,11 +159,7 @@ evolutionary roots, a fact that may explain their complexity and provide tools
 for clinical practice. American Scientist , 89 (4), 344-350.
 }
 \seealso{
-Other emotion functions: \code{\link{emotion_by}}
+Other emotion functions: 
+\code{\link{emotion_by}()}
 }
 \concept{emotion functions}
-\keyword{bad-words}
-\keyword{cursing,}
-\keyword{cussing,}
-\keyword{emotion,}
-\keyword{vulgarity,}
